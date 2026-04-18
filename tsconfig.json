@@ -8,6 +8,10 @@
       "@/*": ["apps/web/*"]
     }
   },
-  "include": ["tests/**/*.ts", "vitest.config.ts"],
-  "exclude": ["node_modules", "apps/web", "worker"]
+  "include": [
+    "tests/**/*.ts",
+    "vitest.config.ts",
+    "worker/src/types/modules.d.ts"
+  ],
+  "exclude": ["node_modules", "apps/web", "apps/web/**/*"]
 }

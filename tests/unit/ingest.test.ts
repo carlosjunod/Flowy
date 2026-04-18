@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-type AnyFn = (...args: unknown[]) => unknown;
-
-const mockAuthRefresh = vi.fn<AnyFn>();
-const mockCreate = vi.fn<AnyFn>();
-const mockSave = vi.fn<AnyFn>();
+const mockAuthRefresh = vi.fn();
+const mockCreate = vi.fn();
+const mockSave = vi.fn();
 
 vi.mock('pocketbase', () => {
   class MockPocketBase {
@@ -24,7 +22,7 @@ vi.mock('pocketbase', () => {
   return { default: MockPocketBase };
 });
 
-const mockQueueAdd = vi.fn<AnyFn>();
+const mockQueueAdd = vi.fn();
 vi.mock('bullmq', () => ({
   Queue: class {
     add(name: string, data: unknown) {
