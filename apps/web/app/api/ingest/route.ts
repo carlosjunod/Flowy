@@ -5,8 +5,8 @@ import PocketBase from 'pocketbase';
 
 export const runtime = 'nodejs';
 
-const VALID_TYPES = new Set(['url', 'screenshot', 'youtube', 'receipt', 'pdf', 'audio']);
-const URL_TYPES = new Set(['url', 'youtube']);
+const VALID_TYPES = new Set(['url', 'screenshot', 'youtube', 'video', 'receipt', 'pdf', 'audio']);
+const URL_TYPES = new Set(['url', 'youtube', 'video']);
 
 type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
 

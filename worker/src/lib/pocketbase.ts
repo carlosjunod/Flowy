@@ -2,7 +2,7 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 
 export type ItemStatus = 'pending' | 'processing' | 'ready' | 'error';
-export type ItemType = 'url' | 'screenshot' | 'youtube' | 'receipt' | 'pdf' | 'audio';
+export type ItemType = 'url' | 'screenshot' | 'youtube' | 'receipt' | 'pdf' | 'audio' | 'video';
 
 export interface ItemRecord {
   id: string;

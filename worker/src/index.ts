@@ -4,6 +4,7 @@ import { getItem, updateItem } from './lib/pocketbase.js';
 import { processUrl } from './processors/url.processor.js';
 import { processImage } from './processors/image.processor.js';
 import { processYoutube } from './processors/youtube.processor.js';
+import { processVideo } from './processors/video.js';
 import type { Job } from 'bullmq';
 
 async function handleJob(job: Job<IngestJobData, IngestJobResult>): Promise<IngestJobResult> {
@@ -24,6 +25,9 @@ async function handleJob(job: Job<IngestJobData, IngestJobResult>): Promise<Inge
         break;
       case 'youtube':
         await processYoutube(item);
+        break;
+      case 'video':
+        await processVideo(item);
         break;
       default:
         await updateItem(itemId, { status: 'ready' });

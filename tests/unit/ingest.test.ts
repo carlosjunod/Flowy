@@ -128,4 +128,27 @@ describe('POST /api/ingest', () => {
     expect(body.data?.status).toBe('pending');
     expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'screenshot', raw_image: 'aGVsbG8=' }));
   });
+
+  it('valid video payload → 201 with { data: { id, status: pending } }', async () => {
+    authOk('user_abc');
+    const res = await POST(
+      makeRequest(
+        { type: 'video', raw_url: 'https://www.tiktok.com/@u/video/123456789012345' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as JsonBody;
+    expect(body.data).toEqual({ id: 'item_123', status: 'pending' });
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ type: 'video', user: 'user_abc' }));
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'video' }));
+  });
+
+  it('type video missing raw_url → 400 MISSING_URL', async () => {
+    authOk();
+    const res = await POST(makeRequest({ type: 'video' }, { authorization: 'Bearer t' }) as never);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as JsonBody;
+    expect(body.error).toBe('MISSING_URL');
+  });
 });
