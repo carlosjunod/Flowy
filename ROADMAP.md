@@ -18,6 +18,7 @@ Universal AI inbox. Share anything → AI processes it → chat to find it.
 | 07 | Inbox Grid | Item grid, AI-generated filters, item status | TODO |
 | 08 | iOS Share Extension | Swift thin client, posts to ingest API | TODO |
 | 09 | Polish + Smoke Test | PWA, error states, full E2E smoke test | TODO |
+| 10 | Video Pipeline | TikTok + Instagram Reels: download audio, transcribe, discard video | TODO |
 
 ---
 
