@@ -141,6 +141,33 @@ type Embedding = {
 
 ---
 
+## Agents
+
+Use specialist agents instead of solving everything in main context. Invoke with `claude agent:name` or via `/agent`.
+
+**Daily drivers for this project:**
+
+| Agent | When to use |
+|-------|-------------|
+| `Explore` | Search across codebase without burning main context |
+| `Plan` | Design implementation approach before coding |
+| `feature-dev:code-architect` | New feature design against existing conventions |
+| `feature-dev:code-reviewer` | PR review with confidence filtering |
+| `code-simplifier:code-simplifier` | Refactor processors/routes without behavior changes |
+| `backend-development:backend-architect` | API route design, service boundaries |
+| `backend-development:tdd-orchestrator` | TDD enforcement on processors |
+| `llm-application-dev:ai-engineer` | RAG, embeddings, sqlite-vec queries |
+| `llm-application-dev:prompt-engineer` | Classification/extraction prompts |
+| `agents-design-experience:ui-ux-designer` | Chat + inbox UX, item cards |
+| `gsd-code-reviewer` + `gsd-code-fixer` | Review → auto-fix loop after each cycle |
+| `gsd-debugger` | Scientific-method debugging when a processor misbehaves |
+| `gsd-nyquist-auditor` | Fill test gaps before cycle exit |
+| `general-purpose` | Swift share extension, Capacitor, anything off the specialist map |
+
+**Skip** (not applicable): podcast pipeline, OCR chain, GraphQL, game dev, Temporal, Docusaurus, legacy modernizer.
+
+---
+
 ## Skills
 
 Read the relevant skill before starting each cycle. Skills live in `~/.claude/skills/`.
@@ -156,21 +183,6 @@ Read the relevant skill before starting each cycle. Skills live in `~/.claude/sk
 | `jezweb/claude-skills@claude-api` | 02–04, 06 | Anthropic SDK, structured outputs, errors |
 | `erichowens/some_claude_skills@llm-streaming-response-handler` | 06 | SSE streaming to client |
 | `alinaqi/claude-bootstrap@pwa-development` | 09 | PWA manifest, icons, display modes |
-
-Install:
-```bash
-npx skills add antfu/skills@vitest -g -y && \
-npx skills add wshobson/agents@nextjs-app-router-patterns -g -y && \
-npx skills add bobmatnyc/claude-mpm-skills@playwright-e2e-testing -g -y && \
-npx skills add wsimmonds/claude-nextjs-skills@nextjs-app-router-fundamentals -g -y && \
-npx skills add sickn33/antigravity-awesome-skills@bullmq-specialist -g -y && \
-npx skills add greendesertsnow/pocketbase-skills@pocketbase-best-practices -g -y && \
-npx skills add jezweb/claude-skills@claude-api -g -y && \
-npx skills add alinaqi/claude-bootstrap@pwa-development -g -y && \
-npx skills add erichowens/some_claude_skills@llm-streaming-response-handler -g -y
-```
-
----
 
 ## Agent Rules
 
