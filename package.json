@@ -1,0 +1,29 @@
+{
+  "name": "tryflowy",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "worker"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,worker,pb -c blue,green,yellow \"npm --workspace apps/web run dev\" \"npm --workspace worker run dev\" \"npm run pb\"",
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:worker": "npm --workspace worker run dev",
+    "pb": "cd pb && ./pocketbase serve --http 127.0.0.1:8090",
+    "build": "npm --workspace apps/web run build && npm --workspace worker run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit && npm --workspace apps/web run typecheck && npm --workspace worker run typecheck",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

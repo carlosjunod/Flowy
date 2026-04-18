@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+pb/pb_data/
+pb/pocketbase
+!pb/pb_migrations/
+.vscode/settings.json

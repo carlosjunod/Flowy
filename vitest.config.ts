@@ -1,0 +1,25 @@
+import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
+
+export default defineConfig({
+  test: {
+    include: ['tests/unit/**/*.test.ts'],
+    environment: 'node',
+    globals: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: [
+        'apps/web/app/api/**/*.ts',
+        'worker/src/**/*.ts',
+      ],
+      exclude: ['**/*.test.ts', '**/node_modules/**'],
+    },
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'apps/web'),
+      '@worker': resolve(__dirname, 'worker/src'),
+    },
+  },
+});
