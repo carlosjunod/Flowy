@@ -3,17 +3,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
-const execFileCallback = vi.fn<(
-  cmd: string,
-  args: string[],
-  opts: unknown,
-  cb: (err: Error | null, stdout?: string, stderr?: string) => void,
-) => void>();
+type ExecCb = (err: (Error & { stderr?: string }) | null, stdout?: string, stderr?: string) => void;
+type ExecImpl = (cmd: string, args: string[], opts: unknown, cb: ExecCb) => void;
+
+const execFileCallback = vi.fn();
 
 vi.mock('node:child_process', () => ({
   execFile: (...args: unknown[]) => {
-    const [cmd, cargs, opts, cb] = args as [string, string[], unknown, (e: Error | null, o?: string, e2?: string) => void];
-    return execFileCallback(cmd, cargs, opts, cb);
+    const [cmd, cargs, opts, cb] = args as [string, string[], unknown, ExecCb];
+    return (execFileCallback as unknown as ExecImpl)(cmd, cargs, opts, cb);
   },
 }));
 
@@ -53,7 +51,7 @@ const { processVideo, detectPlatform } = await import('../../worker/src/processo
 
 // Create a dummy yt-dlp output via the mocked execFile side-effect.
 function mockYtDlpSuccess(itemId: string, opts: { withThumbnail?: boolean } = {}): void {
-  execFileCallback.mockImplementation((cmd, args, _opts, cb) => {
+  const impl: ExecImpl = (cmd, _args, _opts, cb) => {
     if (cmd === 'yt-dlp') {
       const audio = join(tmpdir(), `tryflowy-${itemId}.mp3`);
       const thumb = join(tmpdir(), `tryflowy-${itemId}.jpg`);
@@ -65,15 +63,17 @@ function mockYtDlpSuccess(itemId: string, opts: { withThumbnail?: boolean } = {}
     }
     if (cmd === 'ffmpeg') { cb(null, '', ''); return; }
     cb(null, '', '');
-  });
+  };
+  execFileCallback.mockImplementation(impl as unknown as () => void);
 }
 
 function mockYtDlpFail(message: string): void {
-  execFileCallback.mockImplementation((_cmd, _args, _opts, cb) => {
+  const impl: ExecImpl = (_cmd, _args, _opts, cb) => {
     const err = new Error('Command failed') as Error & { stderr?: string };
     err.stderr = message;
     cb(err);
-  });
+  };
+  execFileCallback.mockImplementation(impl as unknown as () => void);
 }
 
 function baseItem(raw_url: string, id = `vid_${Math.random().toString(36).slice(2, 8)}`) {
