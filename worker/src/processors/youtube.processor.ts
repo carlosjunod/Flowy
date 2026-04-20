@@ -1,6 +1,6 @@
-import { YoutubeTranscript } from 'youtube-transcript';
 import { updateItem, createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
 import { extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
+import { YoutubeTranscript } from '../lib/youtubeTranscriptLoader.js';
 import { ProcessorError } from './url.processor.js';
 
 const ID_PATTERNS: RegExp[] = [

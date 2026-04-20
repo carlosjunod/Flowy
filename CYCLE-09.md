@@ -52,7 +52,7 @@ PWA manifest, empty states, error boundaries, and full end-to-end smoke test.
 ## Cycle Exit Criteria
 
 - [ ] `GET /manifest.webmanifest` returns valid PWA manifest
-- [ ] Lighthouse PWA score ≥ 80 (run via `npx lighthouse http://localhost:3000 --only-categories=pwa`)
+- [ ] Lighthouse PWA score ≥ 80 (run via `npx lighthouse http://localhost:4000 --only-categories=pwa`)
 - [ ] Empty state visible on `/chat` for new user
 - [ ] Empty state visible on `/inbox` for new user
 - [ ] Error boundary catches render errors and shows fallback UI

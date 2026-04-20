@@ -6,7 +6,7 @@ const createEmbeddingMock = vi.fn();
 const extractStructuredDataMock = vi.fn();
 const generateEmbeddingMock = vi.fn();
 
-vi.mock('youtube-transcript', () => ({
+vi.mock('../../worker/src/lib/youtubeTranscriptLoader.js', () => ({
   YoutubeTranscript: {
     fetchTranscript: (...args: unknown[]) => fetchTranscriptMock(...args),
   },

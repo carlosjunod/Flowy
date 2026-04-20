@@ -3,14 +3,14 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node", "vitest/globals"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["apps/web/*"]
+      "@/*": ["./apps/web/*"]
     }
   },
   "include": [
     "tests/**/*.ts",
     "vitest.config.ts",
+    "playwright.config.ts",
     "worker/src/types/modules.d.ts"
   ],
   "exclude": ["node_modules", "apps/web", "apps/web/**/*"]

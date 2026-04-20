@@ -41,7 +41,7 @@ function authFail(): void {
 }
 
 function makeReq(body: unknown, headers: Record<string, string> = {}): Request {
-  return new Request('http://localhost:3000/api/chat', {
+  return new Request('http://localhost:4000/api/chat', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),

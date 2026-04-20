@@ -42,7 +42,7 @@ const { POST } = await import('../../apps/web/app/api/ingest/route.js');
 interface JsonBody { error?: string; data?: { id: string; status: string } }
 
 function makeRequest(body: unknown, headers: Record<string, string> = {}): Request {
-  return new Request('http://localhost:3000/api/ingest', {
+  return new Request('http://localhost:4000/api/ingest', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),

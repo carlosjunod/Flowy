@@ -28,7 +28,7 @@ npx vitest
 **Framework**: Playwright 1.x  
 **Config**: `playwright.config.ts` at root  
 **Browser**: Chromium only (for speed)  
-**Base URL**: `http://localhost:3000`  
+**Base URL**: `http://localhost:4000`  
 **Requires**: App running locally (`npm run dev`)
 
 ```bash

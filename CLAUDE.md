@@ -128,7 +128,7 @@ JWT_SECRET=changeme_local_32chars_minimum
 
 # App
 NEXT_PUBLIC_PB_URL=http://localhost:8090
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:4000
 ```
 
 ---

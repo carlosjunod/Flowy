@@ -39,7 +39,7 @@ After creation:
 
 ## Configuring the app URL
 
-Both Info.plists set `TryflowyAppURL = https://tryflowy.app`. For local development change it to your `NEXT_PUBLIC_APP_URL` (e.g. `http://localhost:3000` on an iPhone simulator).
+Both Info.plists set `TryflowyAppURL = https://tryflowy.app`. For local development change it to your `NEXT_PUBLIC_APP_URL` (e.g. `http://localhost:4000` on an iPhone simulator).
 
 ## Token seeding for manual testing
 

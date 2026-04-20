@@ -15,7 +15,7 @@ Next.js 15 app with PocketBase auth, protected routes, and empty page shells for
 ### T01 — Initialize Next.js app
 **File**: `apps/web/package.json`, `apps/web/app/layout.tsx`  
 **Action**: Create Next.js 15 app with TypeScript, Tailwind CSS, App Router. Configure `@/` alias in `tsconfig.json`.  
-**Acceptance**: `npm run dev` starts on port 3000. `/` renders without error.
+**Acceptance**: `npm run dev` starts on port 4000. `/` renders without error.
 
 ### T02 — Create PocketBase client (web)
 **File**: `apps/web/lib/pocketbase.ts`  

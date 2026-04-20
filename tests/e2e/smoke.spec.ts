@@ -3,7 +3,7 @@ import { test, expect, request as apiRequest } from '@playwright/test';
 const EMAIL = process.env.TEST_USER_EMAIL ?? 'test@tryflowy.app';
 const PASSWORD = process.env.TEST_USER_PASSWORD ?? 'test_password_12345';
 const PB_URL = process.env.NEXT_PUBLIC_PB_URL ?? 'http://localhost:8090';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:4000';
 const TEST_URL = process.env.SMOKE_TEST_URL ?? 'https://vercel.com/blog';
 const SMOKE_ENABLED = process.env.SMOKE_E2E === '1';
 
