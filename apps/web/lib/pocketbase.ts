@@ -60,6 +60,37 @@ export function logout(): void {
 
 export const PB_AUTH_COOKIE = 'pb_auth';
 
+export interface ItemPatch {
+  title?: string;
+  summary?: string;
+  category?: string | null;
+  tags?: string[];
+  content?: string;
+}
+
+async function parseApi<T>(res: Response): Promise<T> {
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = (body as { error?: string }).error ?? `HTTP_${res.status}`;
+    throw new Error(err);
+  }
+  return (body as { data: T }).data;
+}
+
+export async function updateItem(id: string, patch: ItemPatch): Promise<ItemRecord> {
+  const res = await fetch(`/api/items/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  return parseApi<ItemRecord>(res);
+}
+
+export async function deleteItem(id: string): Promise<{ id: string }> {
+  const res = await fetch(`/api/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  return parseApi<{ id: string }>(res);
+}
+
 export async function verifyBearerToken(token: string): Promise<UserRecord | null> {
   const pb = getPb();
   pb.authStore.save(token, null);

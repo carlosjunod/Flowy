@@ -2,66 +2,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import PocketBase from 'pocketbase';
 import type { Item, Embedding } from '@/types';
 import { getClaude, generateEmbedding, cosineSimilarity, CHAT_MODEL } from '@/lib/claude';
+import { authenticate } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
 interface ChatRequestBody {
   message?: string;
   history?: { role: 'user' | 'assistant'; content: string }[];
-}
-
-type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
-
-function readCookie(req: NextRequest | Request, name: string): string | null {
-  const withCookies = req as { cookies?: { get?: (n: string) => { value?: string } | undefined } };
-  const direct = withCookies.cookies?.get?.(name)?.value;
-  if (direct) return direct;
-  const header = req.headers.get('cookie');
-  if (!header) return null;
-  const match = header.split(/;\s*/).find((p) => p.startsWith(`${name}=`));
-  return match ? match.slice(name.length + 1) : null;
-}
-
-function safeDecode(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-async function authenticate(req: NextRequest): Promise<AuthResult> {
-  // Support both Bearer header (API clients) and cookie-based (browser).
-  const header = req.headers.get('authorization');
-  let token: string | null = null;
-  if (header?.startsWith('Bearer ')) {
-    token = header.slice('Bearer '.length).trim();
-  } else {
-    const cookieVal = readCookie(req, 'pb_auth');
-    if (cookieVal) {
-      // Login page stores the raw PB JWT URL-encoded. Older builds wrapped it in
-      // JSON via exportToCookie — handle both so sessions keep working after deploy.
-      const decoded = safeDecode(cookieVal);
-      if (decoded.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(decoded) as { token?: string };
-          token = parsed.token ?? null;
-        } catch { /* fall through */ }
-      } else {
-        token = decoded;
-      }
-    }
-  }
-  if (!token) return { ok: false };
-
-  const pb = new PocketBase(process.env.PB_URL ?? process.env.NEXT_PUBLIC_PB_URL ?? 'http://localhost:8090');
-  pb.authStore.save(token, null);
-  try {
-    const auth = await pb.collection('users').authRefresh();
-    return { ok: true, userId: auth.record.id, token };
-  } catch {
-    return { ok: false };
-  }
 }
 
 async function loadUserEmbeddings(userId: string, token: string): Promise<Embedding[]> {
@@ -143,7 +90,16 @@ export async function POST(req: NextRequest): Promise<Response> {
       ? '<no saved items>'
       : buildContext(items);
 
-    const system = `You are a personal knowledge assistant. Answer only from the provided saved items; when relevant, reference them by their id (e.g. "[item_abc]"). If nothing relevant, respond exactly: "I couldn't find anything relevant in your saved items."\n\nSaved items:\n${context}`;
+    const system = `You are a personal knowledge assistant. Answer only from the provided saved items.
+
+CITATION RULES:
+- Cite an item by inserting its id wrapped in double brackets: [[item_abc]]
+- Put the citation immediately after the sentence it supports. Nothing else — no list headers, no type labels, no URLs, no titles in prose.
+- If fewer than 3 items are relevant, cite fewer. Never invent ids.
+- If nothing relevant, reply exactly: "I couldn't find anything relevant in your saved items."
+
+Saved items:
+${context}`;
 
     const messagesForClaude = [
       ...history.slice(-10).map((m) => ({ role: m.role, content: m.content })),

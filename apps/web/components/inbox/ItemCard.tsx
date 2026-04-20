@@ -1,6 +1,7 @@
 'use client';
 
 import type { Item } from '@/types';
+import { useItemDrawer } from './ItemDrawerProvider';
 
 interface Props {
   item: Item;
@@ -62,7 +63,7 @@ function relativeDate(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function thumbnailUrl(item: Item): string | null {
+export function thumbnailUrl(item: Item): string | null {
   const r2Public = process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? '';
   if (item.r2_key && r2Public) return `${r2Public.replace(/\/$/, '')}/${item.r2_key}`;
   if (item.type === 'youtube') {
@@ -77,6 +78,7 @@ function thumbnailUrl(item: Item): string | null {
 }
 
 export function ItemCard({ item }: Props) {
+  const drawer = useItemDrawer();
   const isPending = item.status === 'pending' || item.status === 'processing';
   const isError = item.status === 'error';
   const thumb = thumbnailUrl(item);
@@ -112,13 +114,12 @@ export function ItemCard({ item }: Props) {
   }
 
   return (
-    <a
-      href={item.source_url ?? item.raw_url ?? '#'}
-      target="_blank"
-      rel="noreferrer"
+    <button
+      type="button"
+      onClick={() => drawer.open(item.id)}
       data-testid="item-card"
       data-category={item.category ?? ''}
-      className="group flex h-44 flex-col gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-white/30 hover:bg-white/10"
+      className="group flex h-44 flex-col gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-white/30 hover:bg-white/10"
     >
       <div className="relative h-24 w-full overflow-hidden rounded-md bg-black/40">
         {thumb ? (
@@ -148,6 +149,6 @@ export function ItemCard({ item }: Props) {
         {item.title ?? '(untitled)'}
       </p>
       {domain ? <span className="text-xs text-white/40">{domain}</span> : null}
-    </a>
+    </button>
   );
 }
