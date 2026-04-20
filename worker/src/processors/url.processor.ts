@@ -1,6 +1,7 @@
 import { extract } from '@extractus/article-extractor';
-import { updateItem, createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
+import { createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
 import { extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
+import { finalizeItem } from '../lib/finalize.js';
 
 export class ProcessorError extends Error {
   code: string;
@@ -48,14 +49,13 @@ export async function processUrl(item: ItemRecord): Promise<void> {
 
   const finalTitle = structured.title || scraped.title || url;
 
-  await updateItem(item.id, {
+  await finalizeItem(item.id, {
     title: finalTitle,
     summary: structured.summary,
     content: plainContent.slice(0, 20_000),
     tags: structured.tags,
     category: structured.category,
     source_url: scraped.url ?? url,
-    status: 'ready',
   });
 
   await createEmbedding(item.id, vector);

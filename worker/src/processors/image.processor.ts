@@ -1,6 +1,7 @@
-import { updateItem, createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
+import { createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
 import { analyzeImage, generateEmbedding, ClaudeError } from '../lib/claude.js';
 import { uploadFile } from '../lib/storage.js';
+import { finalizeItem } from '../lib/finalize.js';
 import { ProcessorError } from './url.processor.js';
 
 type Base64MediaType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
@@ -73,14 +74,13 @@ export async function processImage(item: ItemRecord, rawImageBase64: string): Pr
     throw err;
   }
 
-  await updateItem(item.id, {
+  await finalizeItem(item.id, {
     title: vision.title,
     summary: vision.summary,
     content: vision.extracted_text,
     tags: vision.tags,
     category: vision.category,
     r2_key: r2Key,
-    status: 'ready',
   });
 
   await createEmbedding(item.id, vector);
