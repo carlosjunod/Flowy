@@ -10,10 +10,39 @@ const URL_TYPES = new Set(['url', 'youtube', 'video']);
 
 type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
 
+function readCookie(req: NextRequest | Request, name: string): string | null {
+  const withCookies = req as { cookies?: { get?: (n: string) => { value?: string } | undefined } };
+  const direct = withCookies.cookies?.get?.(name)?.value;
+  if (direct) return direct;
+  const header = req.headers.get('cookie');
+  if (!header) return null;
+  const match = header.split(/;\s*/).find((p) => p.startsWith(`${name}=`));
+  return match ? match.slice(name.length + 1) : null;
+}
+
+function tokenFromCookie(raw: string | null): string | null {
+  if (!raw) return null;
+  let decoded: string;
+  try { decoded = decodeURIComponent(raw); } catch { decoded = raw; }
+  if (decoded.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(decoded) as { token?: string };
+      return parsed.token ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return decoded;
+}
+
 async function authenticate(req: NextRequest): Promise<AuthResult> {
   const header = req.headers.get('authorization');
-  if (!header || !header.startsWith('Bearer ')) return { ok: false };
-  const token = header.slice('Bearer '.length).trim();
+  let token: string | null = null;
+  if (header?.startsWith('Bearer ')) {
+    token = header.slice('Bearer '.length).trim();
+  } else {
+    token = tokenFromCookie(readCookie(req, 'pb_auth'));
+  }
   if (!token) return { ok: false };
 
   const pb = new PocketBase(process.env.PB_URL ?? process.env.NEXT_PUBLIC_PB_URL ?? 'http://localhost:8090');

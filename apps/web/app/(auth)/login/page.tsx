@@ -18,8 +18,10 @@ export default function LoginPage() {
     const pb = getPb();
     try {
       await pb.collection('users').authWithPassword(email, password);
+      // Store just the raw PocketBase JWT. Middleware checks for cookie presence;
+      // API routes parse the value as a Bearer token.
       document.cookie = `pb_auth=${encodeURIComponent(
-        pb.authStore.exportToCookie({ httpOnly: false }),
+        pb.authStore.token,
       )}; path=/; max-age=604800; samesite=lax`;
       router.push('/chat');
       router.refresh();

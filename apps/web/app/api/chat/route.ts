@@ -22,6 +22,14 @@ function readCookie(req: NextRequest | Request, name: string): string | null {
   return match ? match.slice(name.length + 1) : null;
 }
 
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 async function authenticate(req: NextRequest): Promise<AuthResult> {
   // Support both Bearer header (API clients) and cookie-based (browser).
   const header = req.headers.get('authorization');
@@ -31,12 +39,16 @@ async function authenticate(req: NextRequest): Promise<AuthResult> {
   } else {
     const cookieVal = readCookie(req, 'pb_auth');
     if (cookieVal) {
-      try {
-        const decoded = decodeURIComponent(cookieVal);
-        const parsed = JSON.parse(decoded) as { token?: string };
-        token = parsed.token ?? null;
-      } catch {
-        token = null;
+      // Login page stores the raw PB JWT URL-encoded. Older builds wrapped it in
+      // JSON via exportToCookie — handle both so sessions keep working after deploy.
+      const decoded = safeDecode(cookieVal);
+      if (decoded.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(decoded) as { token?: string };
+          token = parsed.token ?? null;
+        } catch { /* fall through */ }
+      } else {
+        token = decoded;
       }
     }
   }
