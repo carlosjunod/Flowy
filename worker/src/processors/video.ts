@@ -7,9 +7,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import 'dotenv/config';
 
-import { updateItem, createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
+import { createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
 import { extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
 import { uploadFile } from '../lib/storage.js';
+import { finalizeItem } from '../lib/finalize.js';
 import { ProcessorError } from './url.processor.js';
 
 const execFileP = promisify(execFile);
@@ -208,11 +209,10 @@ export async function processVideo(item: ItemRecord): Promise<void> {
       tags: structured.tags,
       category: structured.category,
       source_url: rawUrl,
-      status: 'ready',
     };
     if (r2Key) patch.r2_key = r2Key;
 
-    await updateItem(item.id, patch);
+    await finalizeItem(item.id, patch);
     await createEmbedding(item.id, vector);
   } finally {
     await cleanup(p);
