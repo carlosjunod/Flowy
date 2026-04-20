@@ -38,6 +38,12 @@
 **Reason**: Zero egress fees. S3-compatible API means standard SDK works. Carlos already uses Cloudflare for DNS.  
 **Tradeoff**: Slightly less mature than S3. No issue at personal scale.
 
+### Sign in with Apple + server-side identity token validation (CYCLE-11)
+**Chosen**: Native SIWA sheet → POST identity token to `/api/auth/apple` → verify via JWKS → find-or-create PocketBase user keyed on `apple_sub` → return PB auth token. Per-user PocketBase password is deterministically derived via `HMAC-SHA256(SIWA_PASSWORD_SECRET, apple_sub)`.  
+**Rejected**: PocketBase native OAuth2 Apple provider, Clerk, Auth.js / NextAuth  
+**Reason**: The app's primary client is a native iOS/macOS app sharing auth with a share extension via the `group.tryflowy` Keychain. Native SIWA is one-tap (no browser flicker), the identity token is verified server-side against Apple's JWKS, and the HMAC password lets the server mint PB tokens without storing per-user secrets. Clerk would split identity (Clerk) from data (PocketBase) and add a vendor dependency for a single-auth-method single-user product. NextAuth's session model doesn't cross the Keychain/extension boundary. PB native OAuth2 works but requires `ASWebAuthenticationSession` — brief in-app browser instead of the native Apple sheet.  
+**Tradeoff**: If `SIWA_PASSWORD_SECRET` leaks, an attacker who knows a user's `apple_sub` can mint PB tokens for that user. Mitigated by treating the secret as production-critical. Rotation is transparent — next SIWA login transparently re-derives the password.
+
 ---
 
 ## Architecture Assumptions

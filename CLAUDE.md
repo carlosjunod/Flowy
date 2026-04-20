@@ -155,6 +155,39 @@ cd apps/web && npm run dev
 npm run dev
 ```
 
+### iOS / macOS dev loop (CYCLE-11)
+
+```bash
+# Open the Xcode project
+open apps/ios/Tryflowy.xcodeproj
+
+# Build iOS app from CLI (sanity check — use Xcode GUI for day-to-day dev)
+xcodebuild -project apps/ios/Tryflowy.xcodeproj \
+  -scheme Tryflowy \
+  -destination 'platform=iOS Simulator,name=iPhone 15' \
+  build
+
+# Build the iOS share extension only
+xcodebuild -project apps/ios/Tryflowy.xcodeproj \
+  -scheme ShareExtension \
+  -destination 'platform=iOS Simulator,name=iPhone 15' \
+  build
+
+# Build the macOS share extension only
+xcodebuild -project apps/ios/Tryflowy.xcodeproj \
+  -scheme ShareExtensionMac \
+  -destination 'platform=macOS' \
+  build
+
+# Verify AASA is served correctly for Universal Links
+curl -sI https://tryflowy.app/.well-known/apple-app-site-association \
+  | grep -i 'content-type'
+# Expected: content-type: application/json
+```
+
+⚠️ For local SIWA testing: `APPLE_CLIENT_ID` must match the bundle ID on the main app target (`app.tryflowy.app`). `SIWA_PASSWORD_SECRET` must be set to a 32+ char string. `APPLE_TEAM_ID` must be the actual Apple Team ID from developer.apple.com → Membership — the AASA route falls back to `TEAMIDMISSING` when unset so Universal Links will silently fail to register.
+
+
 ---
 
 ## Test Commands
