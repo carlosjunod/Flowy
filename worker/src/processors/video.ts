@@ -65,20 +65,36 @@ async function cleanup(p: Paths): Promise<void> {
 }
 
 async function runYtDlp(url: string, template: string): Promise<void> {
+  const ytdlpPath = process.env.YTDLP_PATH ?? 'yt-dlp';
+  const ffmpegPath = process.env.FFMPEG_PATH;
+  const args = [
+    '--no-playlist',
+    '--write-thumbnail',
+    '--convert-thumbnails', 'jpg',
+    '-x', '--audio-format', 'mp3',
+    '--audio-quality', '0',
+    '-o', template,
+  ];
+  if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
+  args.push(url);
+
+  // Ensure common Homebrew locations are on PATH so bundled conversion tools
+  // (ffprobe, etc.) resolve even when the worker was launched without them.
+  const env = {
+    ...process.env,
+    PATH: [
+      process.env.PATH ?? '',
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+    ].filter(Boolean).join(':'),
+  };
+
   try {
-    await execFileP(
-      'yt-dlp',
-      [
-        '--no-playlist',
-        '--write-thumbnail',
-        '--convert-thumbnails', 'jpg',
-        '-x', '--audio-format', 'mp3',
-        '--audio-quality', '0',
-        '-o', template,
-        url,
-      ],
-      { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 },
-    );
+    await execFileP(ytdlpPath, args, {
+      timeout: 60_000,
+      maxBuffer: 10 * 1024 * 1024,
+      env,
+    });
   } catch (err) {
     const detail =
       err && typeof err === 'object' && 'stderr' in err

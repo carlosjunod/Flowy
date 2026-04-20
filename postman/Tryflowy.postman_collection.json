@@ -1,0 +1,469 @@
+{
+  "info": {
+    "name": "Tryflowy",
+    "description": "Local dev collection for the Tryflowy AI inbox.\n\nWorkflow:\n1. Run **Auth / Login** first — this sets `{{token}}` + `{{userId}}` as collection variables.\n2. Use **Ingest / *** to enqueue content of any type.\n3. Use **Items / Get by ID** to poll status until `ready` or `error`.\n4. Use **Chat / Ask** to query your inbox.\n5. Use **Admin / Create test user** once, only if the users collection is empty.\n\nSwitch environments by overriding `{{pbUrl}}` and `{{appUrl}}` at the collection or environment level.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "8a3f2b1e-tryflowy-2026",
+    "version": "1.0.0"
+  },
+  "variable": [
+    { "key": "pbUrl",   "value": "http://127.0.0.1:8090", "type": "string" },
+    { "key": "appUrl",  "value": "http://127.0.0.1:4000", "type": "string" },
+    { "key": "email",   "value": "test@tryflowy.app",   "type": "string" },
+    { "key": "password","value": "test_password_12345", "type": "string" },
+    { "key": "token",   "value": "",                    "type": "string" },
+    { "key": "userId",  "value": "",                    "type": "string" },
+    { "key": "lastItemId", "value": "",                 "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (sets {{token}} + {{userId}})",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections/users/auth-with-password",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections", "users", "auth-with-password"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identity\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (data.token) {",
+                  "  pm.collectionVariables.set('token', data.token);",
+                  "  pm.collectionVariables.set('userId', data.record.id);",
+                  "  console.log('token set — user:', data.record.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "{{token}}" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections/users/auth-refresh",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections", "users", "auth-refresh"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) pm.collectionVariables.set('token', data.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ingest (simulates share sheet)",
+      "item": [
+        {
+          "name": "URL (article)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"url\",\n  \"raw_url\": \"https://vercel.com/blog\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "if (body.data && body.data.id) {",
+                  "  pm.collectionVariables.set('lastItemId', body.data.id);",
+                  "  console.log('lastItemId =', body.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "YouTube video",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"youtube\",\n  \"raw_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('lastItemId', body.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screenshot (base64 PNG)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"screenshot\",\n  \"raw_image\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=\"\n}"
+            },
+            "description": "Replace `raw_image` with a base64-encoded JPEG/PNG from a file. In Postman use the **Send > Base64** pre-request script, or generate with `base64 -i input.jpg`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('lastItemId', body.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Video (TikTok / Instagram Reel — needs OPENAI_API_KEY + yt-dlp + ffmpeg)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"video\",\n  \"raw_url\": \"https://www.tiktok.com/@tiktok/video/7106594312292453675\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('lastItemId', body.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Error — missing URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"url\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 MISSING_URL', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().error).to.eql('MISSING_URL');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Error — invalid type",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"foo\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 INVALID_TYPE', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().error).to.eql('INVALID_TYPE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Error — unauthorized",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{appUrl}}/api/ingest",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "ingest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"url\",\n  \"raw_url\": \"https://example.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 UNAUTHORIZED', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().error).to.eql('UNAUTHORIZED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Get by ID ({{lastItemId}})",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "{{token}}" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections/items/records/{{lastItemId}}",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections", "items", "records", "{{lastItemId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "console.log('status =', d.status, '| title =', d.title, '| error =', d.error_msg);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List my items",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "{{token}}" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections/items/records?perPage=20&sort=-created&filter=(user='{{userId}}')",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections", "items", "records"],
+              "query": [
+                { "key": "perPage", "value": "20" },
+                { "key": "sort", "value": "-created" },
+                { "key": "filter", "value": "(user='{{userId}}')" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Poll until ready (runs 20× with Postman Runner)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "{{token}}" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections/items/records/{{lastItemId}}",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections", "items", "records", "{{lastItemId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "console.log('[poll]', d.status, d.title || '');",
+                  "if (d.status !== 'ready' && d.status !== 'error') {",
+                  "  setTimeout(() => {}, 2000); // small pause between Runner iterations",
+                  "  postman.setNextRequest('Poll until ready (runs 20× with Postman Runner)');",
+                  "} else {",
+                  "  postman.setNextRequest(null);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Ask (non-streaming view — Postman shows full body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{appUrl}}/api/chat",
+              "host": ["{{appUrl}}"],
+              "path": ["api", "chat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What have I saved about AI and infrastructure?\",\n  \"history\": []\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const items = pm.response.headers.get('x-items');",
+                  "if (items) console.log('items:', items);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin utilities",
+      "item": [
+        {
+          "name": "Create test user (one-time)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections/users/records",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections", "users", "records"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"passwordConfirm\": \"{{password}}\",\n  \"emailVisibility\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "PocketBase health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{pbUrl}}/api/health",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        },
+        {
+          "name": "List collections",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "{{token}}" }],
+            "url": {
+              "raw": "{{pbUrl}}/api/collections",
+              "host": ["{{pbUrl}}"],
+              "path": ["api", "collections"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

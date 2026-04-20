@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './env.js';
 import { createIngestWorker, type IngestJobData, type IngestJobResult } from './queues.js';
 import { getItem, updateItem } from './lib/pocketbase.js';
 import { processUrl } from './processors/url.processor.js';
