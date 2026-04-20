@@ -7,3 +7,40 @@ html, body {
   color: #fafafa;
   min-height: 100vh;
 }
+
+/* Landing page additive utilities */
+.landing-scope {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.landing-scope .font-serif {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .landing-scope *,
+  .landing-scope *::before,
+  .landing-scope *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}
