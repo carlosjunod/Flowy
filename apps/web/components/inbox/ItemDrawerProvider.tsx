@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Item } from '@/types';
 import { ItemDrawer } from './ItemDrawer';
 
 export type ItemMutation =
   | { kind: 'updated'; item: Item }
-  | { kind: 'deleted'; id: string };
+  | { kind: 'deleted'; id: string }
+  | { kind: 'retried'; item: Item };
 
 type Listener = (m: ItemMutation) => void;
 
@@ -14,6 +15,7 @@ interface DrawerApi {
   open: (id: string) => void;
   close: () => void;
   subscribe: (listener: Listener) => () => void;
+  emit: (m: ItemMutation) => void;
 }
 
 const DrawerContext = createContext<DrawerApi | null>(null);
@@ -35,11 +37,10 @@ export function ItemDrawerProvider({ children }: { children: React.ReactNode }) 
       listenersRef.current.add(listener);
       return () => { listenersRef.current.delete(listener); };
     },
+    emit: (m: ItemMutation) => {
+      for (const l of listenersRef.current) l(m);
+    },
   }), []);
-
-  const emit = useCallback((m: ItemMutation) => {
-    for (const l of listenersRef.current) l(m);
-  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -56,9 +57,9 @@ export function ItemDrawerProvider({ children }: { children: React.ReactNode }) 
         <ItemDrawer
           itemId={openId}
           onClose={() => setOpenId(null)}
-          onUpdated={(item) => emit({ kind: 'updated', item })}
+          onUpdated={(item) => api.emit({ kind: 'updated', item })}
           onDeleted={(id) => {
-            emit({ kind: 'deleted', id });
+            api.emit({ kind: 'deleted', id });
             setOpenId(null);
           }}
         />

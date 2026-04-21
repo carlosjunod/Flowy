@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
+import { retryItem, deleteItem } from '@/lib/items-actions';
 
 interface Props {
   item: Item;
@@ -71,19 +73,96 @@ export function thumbnailUrl(item: Item): string | null {
     if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
   }
   if (item.type === 'url') {
+    if (item.og_image) return item.og_image;
     const host = domainFromUrl(item.source_url ?? item.raw_url);
     if (host) return `https://www.google.com/s2/favicons?sz=64&domain=${host}`;
   }
   return null;
 }
 
+interface HoverActionsProps {
+  item: Item;
+  onRetry?: () => void;
+  onDelete: () => void;
+  busy: boolean;
+}
+
+function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
+  const stopAll = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+  };
+  const base =
+    'rounded-full bg-black/70 p-1.5 text-white/80 backdrop-blur transition hover:bg-black/90 hover:text-white disabled:opacity-40';
+  return (
+    <div
+      data-testid="item-card-actions"
+      className="pointer-events-none absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+    >
+      {onRetry ? (
+        <button
+          type="button"
+          title="Retry"
+          aria-label="Retry item"
+          data-testid="item-card-retry"
+          disabled={busy}
+          onClick={(e) => { stopAll(e); onRetry(); }}
+          onKeyDown={stopAll}
+          className={base}
+        >
+          ↻
+        </button>
+      ) : null}
+      <button
+        type="button"
+        title="Delete"
+        aria-label="Delete item"
+        data-testid="item-card-delete"
+        disabled={busy}
+        onClick={(e) => { stopAll(e); onDelete(); }}
+        onKeyDown={stopAll}
+        className={base}
+      >
+        {/* trash glyph */}
+        <span aria-hidden>🗑</span>
+        <span className="sr-only">Delete {item.title ?? 'item'}</span>
+      </button>
+    </div>
+  );
+}
+
 export function ItemCard({ item }: Props) {
   const drawer = useItemDrawer();
+  const [busy, setBusy] = useState(false);
   const isPending = item.status === 'pending' || item.status === 'processing';
   const isError = item.status === 'error';
   const thumb = thumbnailUrl(item);
-  const domain = domainFromUrl(item.source_url ?? item.raw_url);
+  const domain = item.site_name ?? domainFromUrl(item.source_url ?? item.raw_url);
   const categoryClass = categoryColor(item.category);
+
+  const confirmDelete = async () => {
+    if (busy) return;
+    if (typeof window !== 'undefined' && !window.confirm('Delete this item?')) return;
+    setBusy(true);
+    const res = await deleteItem(item.id);
+    if (res.ok) {
+      drawer.emit({ kind: 'deleted', id: item.id });
+    } else {
+      setBusy(false);
+      if (typeof window !== 'undefined') window.alert(`Delete failed: ${res.error}`);
+    }
+  };
+
+  const triggerRetry = async () => {
+    if (busy) return;
+    setBusy(true);
+    const res = await retryItem(item.id);
+    if (res.ok) {
+      drawer.emit({ kind: 'retried', item: res.data });
+    } else {
+      setBusy(false);
+      if (typeof window !== 'undefined') window.alert(`Retry failed: ${res.error}`);
+    }
+  };
 
   if (isPending) {
     return (
@@ -105,21 +184,29 @@ export function ItemCard({ item }: Props) {
       <article
         data-testid="item-card-error"
         title={item.error_msg ?? 'Processing error'}
-        className="flex h-44 flex-col gap-2 rounded-xl border border-red-500/30 bg-red-500/5 p-3"
+        className="group relative flex h-44 flex-col gap-2 rounded-xl border border-red-500/30 bg-red-500/5 p-3"
       >
         <div className="flex h-24 items-center justify-center text-3xl" aria-hidden>⚠️</div>
-        <span className="text-xs text-red-300">{item.error_msg ?? 'error'}</span>
+        <span className="line-clamp-3 text-xs text-red-300">{item.error_msg ?? 'error'}</span>
+        <HoverActions item={item} onRetry={triggerRetry} onDelete={confirmDelete} busy={busy} />
       </article>
     );
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => drawer.open(item.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          drawer.open(item.id);
+        }
+      }}
       data-testid="item-card"
       data-category={item.category ?? ''}
-      className="group flex h-44 flex-col gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-white/30 hover:bg-white/10"
+      className="group relative flex h-44 cursor-pointer flex-col gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-white/30 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
     >
       <div className="relative h-24 w-full overflow-hidden rounded-md bg-black/40">
         {thumb ? (
@@ -135,7 +222,7 @@ export function ItemCard({ item }: Props) {
             {TYPE_GLYPH[item.type] ?? '📎'}
           </div>
         )}
-        <span className="absolute right-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-xs" aria-hidden>
+        <span className="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-xs" aria-hidden>
           {TYPE_GLYPH[item.type] ?? '📎'}
         </span>
       </div>
@@ -149,6 +236,7 @@ export function ItemCard({ item }: Props) {
         {item.title ?? '(untitled)'}
       </p>
       {domain ? <span className="text-xs text-white/40">{domain}</span> : null}
-    </button>
+      <HoverActions item={item} onDelete={confirmDelete} busy={busy} />
+    </div>
   );
 }

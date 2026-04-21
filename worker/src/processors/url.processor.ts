@@ -16,7 +16,9 @@ export async function processUrl(item: ItemRecord): Promise<void> {
   const url = item.raw_url;
   if (!url) throw new ProcessorError('MISSING_URL');
 
-  let scraped: { title?: string; content?: string; url?: string } | null;
+  let scraped:
+    | { title?: string; content?: string; url?: string; image?: string; description?: string; source?: string }
+    | null;
   try {
     scraped = await extract(url);
   } catch (err) {
@@ -49,6 +51,8 @@ export async function processUrl(item: ItemRecord): Promise<void> {
 
   const finalTitle = structured.title || scraped.title || url;
 
+  const description = scraped.description?.slice(0, 500) ?? '';
+  await updateItem(item.id, {
   await finalizeItem(item.id, {
     title: finalTitle,
     summary: structured.summary,
@@ -56,6 +60,11 @@ export async function processUrl(item: ItemRecord): Promise<void> {
     tags: structured.tags,
     category: structured.category,
     source_url: scraped.url ?? url,
+    og_image: scraped.image ?? '',
+    og_description: description,
+    site_name: scraped.source?.slice(0, 100) ?? '',
+    status: 'ready',
+    error_msg: '',
   });
 
   await createEmbedding(item.id, vector);

@@ -15,6 +15,9 @@ export interface Item {
   status: ItemStatus;
   error_msg?: string;
   source_url?: string;
+  og_image?: string;
+  og_description?: string;
+  site_name?: string;
   created: string;
   updated: string;
 }
