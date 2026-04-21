@@ -2,16 +2,7 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 
 export type ItemStatus = 'pending' | 'processing' | 'ready' | 'error';
-export type ItemType =
-  | 'url'
-  | 'screenshot'
-  | 'youtube'
-  | 'receipt'
-  | 'pdf'
-  | 'audio'
-  | 'video'
-  | 'instagram'
-  | 'email';
+export type ItemType = 'url' | 'screenshot' | 'youtube' | 'receipt' | 'pdf' | 'audio' | 'video' | 'instagram';
 
 export type MediaSlideKind = 'image' | 'video';
 
@@ -43,31 +34,6 @@ export interface ItemRecord {
   site_name?: string;
   element?: string;
   media?: MediaSlide[];
-  email_message_id?: string;
-  email_from?: string;
-  email_subject?: string;
-  email_received_at?: string;
-  created: string;
-  updated: string;
-}
-
-export type IntegrationProvider = 'google';
-export type IntegrationStatus = 'active' | 'revoked' | 'error';
-
-export interface IntegrationRecord {
-  id: string;
-  user: string;
-  provider: IntegrationProvider;
-  provider_sub?: string;
-  provider_email?: string;
-  access_token?: string;
-  refresh_token?: string;
-  access_token_expires_at?: string;
-  scopes?: string[];
-  last_sync_at?: string;
-  last_history_id?: string;
-  status: IntegrationStatus;
-  error_msg?: string;
   created: string;
   updated: string;
 }
@@ -227,43 +193,6 @@ export async function createUserInterest(data: {
 export async function updateUserInterest(id: string, patch: Partial<UserInterestRecord>): Promise<UserInterestRecord> {
   await ensureAuth();
   return pb.collection('user_interests').update<UserInterestRecord>(id, patch);
-}
-
-export async function getIntegration(id: string): Promise<IntegrationRecord> {
-  await ensureAuth();
-  return pb.collection('integrations').getOne<IntegrationRecord>(id);
-}
-
-export async function updateIntegration(
-  id: string,
-  patch: Partial<IntegrationRecord>,
-): Promise<IntegrationRecord> {
-  await ensureAuth();
-  return pb.collection('integrations').update<IntegrationRecord>(id, patch);
-}
-
-export async function findItemByEmailMessageId(
-  userId: string,
-  messageId: string,
-): Promise<ItemRecord | null> {
-  await ensureAuth();
-  const safeUser = userId.replace(/"/g, '');
-  const safeMsg = messageId.replace(/"/g, '');
-  try {
-    return await pb
-      .collection('items')
-      .getFirstListItem<ItemRecord>(`user="${safeUser}" && email_message_id="${safeMsg}"`);
-  } catch (err) {
-    if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
-      return null;
-    }
-    throw err;
-  }
-}
-
-export async function createItem(data: Partial<ItemRecord>): Promise<ItemRecord> {
-  await ensureAuth();
-  return pb.collection('items').create<ItemRecord>(data);
 }
 
 if (PB_ADMIN_EMAIL && PB_ADMIN_PASSWORD) {
