@@ -151,4 +151,61 @@ describe('POST /api/ingest', () => {
     const body = (await res.json()) as JsonBody;
     expect(body.error).toBe('MISSING_URL');
   });
+
+  it('type url + instagram post URL → coerced to instagram and queued', async () => {
+    authOk('user_abc');
+    const res = await POST(
+      makeRequest(
+        { type: 'url', raw_url: 'https://www.instagram.com/p/DXWW5hggCLN/?img_index=1' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ type: 'instagram', user: 'user_abc' }));
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'instagram' }));
+  });
+
+  it('type video + instagram /p/ URL → coerced to instagram', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'video', raw_url: 'https://www.instagram.com/p/ABC/' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'instagram' }));
+  });
+
+  it('type video + instagram /reel/ URL → stays video', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'video', raw_url: 'https://www.instagram.com/reel/XYZ/' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'video' }));
+  });
+
+  it('explicit type instagram + raw_url → queued as instagram', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'instagram', raw_url: 'https://www.instagram.com/p/ABC/' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'instagram' }));
+  });
+
+  it('type instagram missing raw_url → 400 MISSING_URL', async () => {
+    authOk();
+    const res = await POST(makeRequest({ type: 'instagram' }, { authorization: 'Bearer t' }) as never);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as JsonBody;
+    expect(body.error).toBe('MISSING_URL');
+  });
 });

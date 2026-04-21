@@ -4,8 +4,17 @@ import { getQueue } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 
-const VALID_TYPES = new Set(['url', 'screenshot', 'youtube', 'video', 'receipt', 'pdf', 'audio']);
-const URL_TYPES = new Set(['url', 'youtube', 'video']);
+const VALID_TYPES = new Set(['url', 'screenshot', 'youtube', 'video', 'instagram', 'receipt', 'pdf', 'audio']);
+const URL_TYPES = new Set(['url', 'youtube', 'video', 'instagram']);
+
+const INSTAGRAM_POST_PATTERNS = [
+  /^https?:\/\/(?:www\.)?instagram\.com\/p\//,
+  /^https?:\/\/(?:www\.)?instagram\.com\/tv\//,
+];
+
+function isInstagramPostUrl(url: string): boolean {
+  return INSTAGRAM_POST_PATTERNS.some((r) => r.test(url));
+}
 
 type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
 
@@ -82,16 +91,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'INVALID_TYPE' }, { status: 400 });
   }
 
-  const { type, raw_url, raw_image, source_url } = body;
-  if (!type || typeof type !== 'string' || !VALID_TYPES.has(type)) {
+  const { type: incomingType, raw_url, raw_image, source_url } = body;
+  if (!incomingType || typeof incomingType !== 'string' || !VALID_TYPES.has(incomingType)) {
     return NextResponse.json({ error: 'INVALID_TYPE' }, { status: 400 });
   }
 
-  if (URL_TYPES.has(type)) {
+  if (URL_TYPES.has(incomingType)) {
     if (!raw_url || typeof raw_url !== 'string') {
       return NextResponse.json({ error: 'MISSING_URL' }, { status: 400 });
     }
   }
+
+  // Auto-route Instagram post/carousel URLs to the instagram processor.
+  // Reels stay on whatever type the client picked (usually `video`).
+  const type =
+    (incomingType === 'url' || incomingType === 'video') && raw_url && isInstagramPostUrl(raw_url)
+      ? 'instagram'
+      : incomingType;
 
   if (type === 'screenshot') {
     if (!raw_image || typeof raw_image !== 'string') {

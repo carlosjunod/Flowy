@@ -2,7 +2,18 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 
 export type ItemStatus = 'pending' | 'processing' | 'ready' | 'error';
-export type ItemType = 'url' | 'screenshot' | 'youtube' | 'receipt' | 'pdf' | 'audio' | 'video';
+export type ItemType = 'url' | 'screenshot' | 'youtube' | 'receipt' | 'pdf' | 'audio' | 'video' | 'instagram';
+
+export type MediaSlideKind = 'image' | 'video';
+
+export interface MediaSlide {
+  index: number;
+  kind: MediaSlideKind;
+  r2_key: string;
+  source_url?: string;
+  summary?: string;
+  extracted_text?: string;
+}
 
 export interface ItemRecord {
   id: string;
@@ -22,6 +33,7 @@ export interface ItemRecord {
   og_description?: string;
   site_name?: string;
   element?: string;
+  media?: MediaSlide[];
   created: string;
   updated: string;
 }
