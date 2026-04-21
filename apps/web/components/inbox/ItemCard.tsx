@@ -4,14 +4,11 @@ import { useState } from 'react';
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { retryItem, deleteItem } from '@/lib/items-actions';
+import { TypeIcon, RotateIcon, TrashIcon, AlertTriangleIcon } from '@/components/ui/icons';
 
 interface Props {
   item: Item;
 }
-
-const TYPE_GLYPH: Record<string, string> = {
-  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
-};
 
 function domainFromUrl(url?: string | null): string | null {
   if (!url) return null;
@@ -37,17 +34,10 @@ function youtubeIdFromUrl(url?: string): string | null {
 }
 
 function categoryColor(category?: string | null): string {
-  if (!category) return 'bg-white/10 text-white/70';
+  if (!category) return 'cat-default';
   let hash = 0;
   for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
-  const palette = [
-    'bg-rose-500/20 text-rose-200',
-    'bg-amber-500/20 text-amber-200',
-    'bg-emerald-500/20 text-emerald-200',
-    'bg-sky-500/20 text-sky-200',
-    'bg-violet-500/20 text-violet-200',
-    'bg-fuchsia-500/20 text-fuchsia-200',
-  ];
+  const palette = ['cat-rose', 'cat-amber', 'cat-emerald', 'cat-sky', 'cat-violet', 'cat-fuchsia'];
   return palette[hash % palette.length] ?? palette[0]!;
 }
 
@@ -92,11 +82,11 @@ function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
     e.stopPropagation();
   };
   const base =
-    'rounded-full bg-black/70 p-1.5 text-white/80 backdrop-blur transition hover:bg-black/90 hover:text-white disabled:opacity-40';
+    'rounded-full border border-border bg-surface-elevated/90 p-1.5 text-foreground/70 backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:opacity-40 active:scale-95';
   return (
     <div
       data-testid="item-card-actions"
-      className="pointer-events-none absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+      className="pointer-events-none absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
     >
       {onRetry ? (
         <button
@@ -109,7 +99,7 @@ function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
           onKeyDown={stopAll}
           className={base}
         >
-          ↻
+          <RotateIcon size={14} />
         </button>
       ) : null}
       <button
@@ -120,10 +110,9 @@ function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
         disabled={busy}
         onClick={(e) => { stopAll(e); onDelete(); }}
         onKeyDown={stopAll}
-        className={base}
+        className={`${base} hover:border-red-400 hover:text-red-700`}
       >
-        {/* trash glyph */}
-        <span aria-hidden>🗑</span>
+        <TrashIcon size={14} />
         <span className="sr-only">Delete {item.title ?? 'item'}</span>
       </button>
     </div>
@@ -168,12 +157,17 @@ export function ItemCard({ item }: Props) {
     return (
       <article
         data-testid="item-card-pending"
-        className="pointer-events-none flex h-44 flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-3"
+        className="pointer-events-none flex h-48 flex-col gap-3 rounded-2xl border border-border bg-surface-elevated p-3 shadow-card"
       >
-        <div className="h-24 w-full animate-pulse rounded-md bg-white/10" />
-        <div className="flex items-center gap-2 text-xs text-white/50">
-          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          <span>{item.status}…</span>
+        <div className="relative h-28 w-full overflow-hidden rounded-lg bg-surface">
+          <div className="absolute inset-0 animate-shimmer bg-shimmer" />
+        </div>
+        <div className="relative h-3 w-2/3 overflow-hidden rounded bg-surface">
+          <div className="absolute inset-0 animate-shimmer bg-shimmer" />
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
+          <span className="capitalize">{item.status}…</span>
         </div>
       </article>
     );
@@ -184,10 +178,12 @@ export function ItemCard({ item }: Props) {
       <article
         data-testid="item-card-error"
         title={item.error_msg ?? 'Processing error'}
-        className="group relative flex h-44 flex-col gap-2 rounded-xl border border-red-500/30 bg-red-500/5 p-3"
+        className="group relative flex h-48 flex-col gap-2 rounded-2xl border border-red-300 bg-red-50 p-3"
       >
-        <div className="flex h-24 items-center justify-center text-3xl" aria-hidden>⚠️</div>
-        <span className="line-clamp-3 text-xs text-red-300">{item.error_msg ?? 'error'}</span>
+        <div className="flex h-28 items-center justify-center">
+          <AlertTriangleIcon size={32} strokeWidth={1.5} className="text-red-500" />
+        </div>
+        <span className="line-clamp-3 text-xs text-red-700">{item.error_msg ?? 'error'}</span>
         <HoverActions item={item} onRetry={triggerRetry} onDelete={confirmDelete} busy={busy} />
       </article>
     );
@@ -206,36 +202,41 @@ export function ItemCard({ item }: Props) {
       }}
       data-testid="item-card"
       data-category={item.category ?? ''}
-      className="group relative flex h-44 cursor-pointer flex-col gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-white/30 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+      className="group relative flex h-48 cursor-pointer flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <div className="relative h-24 w-full overflow-hidden rounded-md bg-black/40">
+      <div className="relative h-28 w-full overflow-hidden rounded-lg bg-surface">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumb}
             alt=""
-            className="h-full w-full object-cover"
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out-expo group-hover:scale-[1.03]"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-3xl" aria-hidden>
-            {TYPE_GLYPH[item.type] ?? '📎'}
+          <div className="flex h-full w-full items-center justify-center text-muted">
+            <TypeIcon type={item.type} size={32} strokeWidth={1.5} />
           </div>
         )}
-        <span className="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-xs" aria-hidden>
-          {TYPE_GLYPH[item.type] ?? '📎'}
+        <span
+          className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md border border-border bg-background/85 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground/70 backdrop-blur-sm"
+          aria-hidden
+        >
+          <TypeIcon type={item.type} size={11} strokeWidth={2} />
+          <span>{item.type}</span>
         </span>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className={`rounded px-2 py-0.5 text-[11px] uppercase tracking-wide ${categoryClass}`}>
+        <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${categoryClass}`}>
           {item.category ?? 'uncategorized'}
         </span>
-        <span className="text-[11px] text-white/40">{relativeDate(item.created)}</span>
+        <span className="text-[11px] text-muted">{relativeDate(item.created)}</span>
       </div>
-      <p className="line-clamp-2 text-sm font-medium text-white/90">
+      <p className="line-clamp-2 text-sm font-medium text-foreground">
         {item.title ?? '(untitled)'}
       </p>
-      {domain ? <span className="text-xs text-white/40">{domain}</span> : null}
+      {domain ? <span className="truncate text-xs text-muted">{domain}</span> : null}
       <HoverActions item={item} onDelete={confirmDelete} busy={busy} />
     </div>
   );

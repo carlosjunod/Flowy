@@ -4,6 +4,7 @@ import { Fragment, useMemo } from 'react';
 import type { ChatMessageData } from './ChatWindow';
 import { ItemChip } from './ItemChip';
 import { useItemDrawer } from '@/components/inbox/ItemDrawerProvider';
+import { TypeIcon } from '@/components/ui/icons';
 
 export interface ChatItemRef {
   id: string;
@@ -31,13 +32,6 @@ function domainFromUrl(url?: string | null): string | null {
   } catch {
     return null;
   }
-}
-
-function TypeIcon({ type }: { type: string }) {
-  const glyph: Record<string, string> = {
-    url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
-  };
-  return <span aria-hidden>{glyph[type] ?? '📎'}</span>;
 }
 
 function renderWithChips(text: string, byId: Map<string, ChatItemRef>) {
@@ -87,19 +81,19 @@ export function ChatMessage({ message }: Props) {
       <div
         className={
           isUser
-            ? 'max-w-[80%] rounded-2xl bg-white text-black px-4 py-2 text-sm'
-            : 'max-w-[90%] rounded-2xl bg-white/10 px-4 py-3 text-sm text-white whitespace-pre-wrap'
+            ? 'max-w-[80%] rounded-2xl bg-primary px-4 py-2.5 text-sm text-background shadow-card'
+            : 'max-w-[90%] whitespace-pre-wrap rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm leading-relaxed text-foreground shadow-card'
         }
       >
         {isUser
           ? message.content
           : message.content
             ? renderWithChips(message.content, byId)
-            : <span className="text-white/40">…</span>}
+            : <span className="text-muted">…</span>}
       </div>
       {!isUser && railItems.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <span className="pl-1 text-[11px] uppercase tracking-wide text-white/40">{railLabel}</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="pl-1 text-[11px] font-medium uppercase tracking-wide text-muted">{railLabel}</span>
           <div className="-mx-1 flex max-w-full snap-x gap-2 overflow-x-auto pb-1 pl-1">
             {railItems.map((item) => (
               <button
@@ -107,14 +101,16 @@ export function ChatMessage({ message }: Props) {
                 type="button"
                 onClick={() => drawer.open(item.id)}
                 data-testid="item-card"
-                className="group flex min-w-[200px] snap-start flex-col gap-1 rounded-xl border border-white/10 bg-black/40 p-3 text-left text-xs hover:border-white/30"
+                className="group flex min-w-[220px] snap-start flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated p-3 text-left text-xs shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card-hover"
               >
-                <span className="flex items-center gap-1 text-white/60">
-                  <TypeIcon type={item.type} />
-                  <span>{domainFromUrl(item.source_url) ?? item.type}</span>
+                <span className="flex items-center gap-1.5 text-muted">
+                  <TypeIcon type={item.type} size={12} strokeWidth={2} />
+                  <span className="truncate">{domainFromUrl(item.source_url) ?? item.type}</span>
                 </span>
-                <span className="line-clamp-2 font-medium text-white">{truncate(item.title ?? '(untitled)', 40)}</span>
-                <span className="text-white/40">Open details →</span>
+                <span className="line-clamp-2 font-medium text-foreground">{truncate(item.title ?? '(untitled)', 40)}</span>
+                <span className="inline-flex items-center gap-1 text-accent opacity-80 transition-opacity group-hover:opacity-100">
+                  Open details →
+                </span>
               </button>
             ))}
           </div>

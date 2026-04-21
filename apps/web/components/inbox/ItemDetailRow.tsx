@@ -3,10 +3,7 @@
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { thumbnailUrl } from './ItemCard';
-
-const TYPE_GLYPH: Record<string, string> = {
-  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
-};
+import { TypeIcon } from '@/components/ui/icons';
 
 function domainFromUrl(url?: string | null): string | null {
   if (!url) return null;
@@ -39,28 +36,29 @@ export function ItemDetailRow({ item }: { item: Item }) {
       onClick={() => drawer.open(item.id)}
       data-testid="item-detail-row"
       data-category={item.category ?? ''}
-      className="flex w-full gap-4 rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-white/30 hover:bg-white/10"
+      className="group flex w-full gap-4 rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
     >
-      <div className="flex h-24 w-32 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black/40 text-2xl">
+      <div className="flex h-24 w-32 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-muted">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 ease-out-expo group-hover:scale-[1.03]" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         ) : (
-          <span aria-hidden>{TYPE_GLYPH[item.type] ?? '📎'}</span>
+          <TypeIcon type={item.type} size={28} strokeWidth={1.5} />
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] uppercase tracking-wide text-white/50">
-            {TYPE_GLYPH[item.type] ?? '📎'} {item.category ?? 'uncategorized'}
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted">
+            <TypeIcon type={item.type} size={12} strokeWidth={2} />
+            <span>{item.category ?? 'uncategorized'}</span>
           </span>
-          <span className="text-[11px] text-white/40">{relativeDate(item.created)}</span>
+          <span className="text-[11px] text-muted">{relativeDate(item.created)}</span>
         </div>
-        <h3 className="line-clamp-1 text-sm font-semibold text-white">
+        <h3 className="line-clamp-1 text-sm font-semibold text-foreground">
           {isPending ? `${item.status}…` : isError ? (item.error_msg ?? 'error') : (item.title ?? '(untitled)')}
         </h3>
-        {item.summary ? <p className="line-clamp-2 text-xs text-white/60">{item.summary}</p> : null}
-        <div className="mt-auto flex items-center gap-2 text-[11px] text-white/40">
+        {item.summary ? <p className="line-clamp-2 text-xs leading-relaxed text-muted">{item.summary}</p> : null}
+        <div className="mt-auto flex items-center gap-2 text-[11px] text-muted">
           {domain ? <span>{domain}</span> : null}
           {item.tags && item.tags.length > 0 ? (
             <span className="truncate">· {item.tags.slice(0, 4).join(' · ')}</span>

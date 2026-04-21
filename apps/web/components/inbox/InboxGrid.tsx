@@ -8,6 +8,8 @@ import { ItemRow } from './ItemRow';
 import { ItemDetailRow } from './ItemDetailRow';
 import { FilterBar, type SortMode, type SortDirection, type ViewMode } from './FilterBar';
 import { useItemDrawer } from './ItemDrawerProvider';
+import { InboxIcon, SearchIcon } from '@/components/ui/icons';
+import { Spinner } from '@/components/ui/Spinner';
 
 const PAGE_SIZE = 20;
 const VIEW_KEY = 'flowy:view-mode';
@@ -145,31 +147,30 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         onQuery={setQuery}
       />
       {readyForEmpty ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 py-16 text-center text-white/70">
-          <div className="text-5xl" aria-hidden>📥</div>
-          <h2 className="text-base font-semibold text-white">Nothing saved yet</h2>
-          <p className="text-xs">Share something from any app to get started.</p>
-        </div>
+        <EmptyState
+          icon={<InboxIcon size={36} strokeWidth={1.5} className="text-accent" />}
+          title="Nothing saved yet"
+          body="Share something from any app to get started — Tryflowy will extract, classify, and file it automatically."
+        />
       ) : filteredEmpty ? (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-12 text-center text-white/60">
-          <div className="text-3xl" aria-hidden>🔍</div>
-          <p className="text-sm">No items match your search.</p>
-          {hasMore ? (
-            <p className="text-xs text-white/40">Load more below to search older items.</p>
-          ) : null}
-        </div>
+        <EmptyState
+          icon={<SearchIcon size={32} strokeWidth={1.5} className="text-muted" />}
+          title="No matches"
+          body={hasMore ? 'No items match your search. Load more below to search older items.' : 'No items match your search.'}
+          compact
+        />
       ) : view === 'list' ? (
-        <div data-testid="inbox-list" className="flex flex-col gap-2">
+        <div data-testid="inbox-list" className="flex flex-col gap-2 stagger-child">
           {filtered.map((item) => <ItemRow key={item.id} item={item} />)}
         </div>
       ) : view === 'detail' ? (
-        <div data-testid="inbox-detail" className="flex flex-col gap-3">
+        <div data-testid="inbox-detail" className="flex flex-col gap-3 stagger-child">
           {filtered.map((item) => <ItemDetailRow key={item.id} item={item} />)}
         </div>
       ) : (
         <div
           data-testid="inbox-grid"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          className="grid grid-cols-1 gap-4 stagger-child sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
         >
           {filtered.map((item) => (
             <ItemCard key={item.id} item={item} />
@@ -177,7 +178,7 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         </div>
       )}
       {hasMore ? (
-        <div className="mt-6 flex justify-center">
+        <div className="mt-8 flex justify-center">
           <button
             type="button"
             onClick={() => {
@@ -185,13 +186,46 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
               setPage(next);
               void load(next, false);
             }}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm hover:border-white/30"
+            className="group inline-flex items-center gap-2 rounded-full border border-border bg-surface-elevated px-5 py-2 text-sm text-foreground transition-all duration-200 ease-out-expo hover:border-foreground/30 hover:bg-surface hover:shadow-card-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             data-testid="load-more"
           >
-            {loading ? 'Loading…' : 'Load more'}
+            {loading ? <Spinner size={14} /> : null}
+            <span>{loading ? 'Loading…' : 'Load more'}</span>
           </button>
         </div>
       ) : null}
     </section>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  body,
+  compact,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        'relative overflow-hidden rounded-2xl border border-border bg-surface-elevated text-center',
+        'flex flex-col items-center gap-3 animate-fade-up',
+        compact ? 'py-12' : 'py-20',
+      ].join(' ')}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-halo-accent blur-2xl animate-halo-drift"
+      />
+      <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10">
+        {icon}
+      </div>
+      <h2 className="relative font-display text-2xl leading-tight text-foreground">{title}</h2>
+      <p className="relative max-w-sm px-6 text-sm text-muted">{body}</p>
+    </div>
   );
 }

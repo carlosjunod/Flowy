@@ -4,10 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Item } from '@/types';
 import { getPb, updateItem, deleteItem, type ItemPatch } from '@/lib/pocketbase';
 import { shareItem } from '@/lib/share';
-
-const TYPE_GLYPH: Record<string, string> = {
-  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
-};
+import { TypeIcon, XIcon, ArrowUpRightIcon, ShareIcon, TrashIcon } from '@/components/ui/icons';
+import { Spinner } from '@/components/ui/Spinner';
 
 const CONTENT_LABEL: Record<string, string> = {
   url: 'Article text',
@@ -181,49 +179,53 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
   }, [draft.tags, item]);
 
   return (
-    <div className="fixed inset-0 z-40 flex" role="dialog" aria-modal="true" aria-label="Item details">
+    <div className="fixed inset-0 z-40 flex animate-fade-in" role="dialog" aria-modal="true" aria-label="Item details">
       <button
         type="button"
         aria-label="Close details"
         onClick={onClose}
-        className="flex-1 bg-black/60 backdrop-blur-sm"
+        className="flex-1 bg-foreground/40 backdrop-blur-sm"
         tabIndex={-1}
       />
       <aside
         ref={panelRef}
         tabIndex={-1}
         data-testid="item-drawer"
-        className="h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-[#0a0a0a] p-5 text-sm text-white shadow-2xl outline-none"
+        className="h-full w-full max-w-xl animate-fade-up overflow-y-auto border-l border-border bg-background p-5 text-sm text-foreground shadow-elev outline-none"
       >
         {loadError ? (
           <div className="flex flex-col gap-3">
-            <button type="button" onClick={onClose} className="self-start text-white/60 hover:text-white">✕ Close</button>
-            <p className="rounded-lg bg-red-500/10 p-3 text-red-300">{loadError}</p>
+            <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-muted transition-colors hover:bg-foreground/5 hover:text-foreground">
+              <XIcon size={14} /> Close
+            </button>
+            <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-red-700">{loadError}</p>
           </div>
         ) : !merged ? (
-          <div className="flex items-center gap-2 text-white/60">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          <div className="flex items-center gap-2 text-muted">
+            <Spinner size={14} tone="accent" />
             Loading…
           </div>
         ) : (
           <>
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-2">
-                <span className="text-lg" aria-hidden>{TYPE_GLYPH[merged.type] ?? '📎'}</span>
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-muted" aria-hidden>
+                  <TypeIcon type={merged.type} size={16} strokeWidth={1.75} />
+                </span>
                 <input
                   aria-label="Title"
                   value={draft.title ?? merged.title ?? ''}
                   placeholder="(untitled)"
                   onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                  className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-white/30 focus:border-b focus:border-white/30"
+                  className="min-w-0 flex-1 bg-transparent pb-1 text-lg font-semibold text-foreground outline-none placeholder:text-muted/60 focus:border-b focus:border-accent"
                 />
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="rounded p-1 text-white/60 hover:bg-white/10 hover:text-white"
-              >✕</button>
+                className="rounded-md p-1.5 text-muted transition-colors hover:bg-foreground/5 hover:text-foreground"
+              ><XIcon size={16} /></button>
             </div>
 
             <Hero item={merged} zoomed={zoomed} onToggleZoom={() => setZoomed((z) => !z)} />
@@ -234,43 +236,52 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                   href={merged.source_url ?? merged.raw_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-white/30"
-                >↗ Open source</a>
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-foreground transition-all hover:border-accent/40 hover:text-accent active:scale-[0.97]"
+                >
+                  <ArrowUpRightIcon size={12} />
+                  <span>Open source</span>
+                </a>
               ) : null}
               <button
                 type="button"
                 onClick={handleShare}
-                className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-white/30"
-              >↗ Share</button>
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-foreground transition-all hover:border-foreground/30 active:scale-[0.97]"
+              >
+                <ShareIcon size={12} />
+                <span>Share</span>
+              </button>
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="rounded-full border border-red-400/30 px-3 py-1.5 text-xs text-red-300 hover:border-red-400/60 disabled:opacity-50"
-              >{deleting ? 'Deleting…' : '🗑 Delete'}</button>
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-all hover:border-red-400 active:scale-[0.97] disabled:opacity-50"
+              >
+                <TrashIcon size={12} />
+                <span>{deleting ? 'Deleting…' : 'Delete'}</span>
+              </button>
             </div>
 
-            <section className="mt-6 flex flex-col gap-3">
+            <section className="mt-6 flex flex-col gap-4">
               <Field label="Category">
                 <input
                   value={draft.category !== undefined ? (draft.category ?? '') : (merged.category ?? '')}
                   placeholder="uncategorized"
                   onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value || null }))}
-                  className="w-full rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm outline-none focus:border-white/40"
+                  className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25"
                 />
               </Field>
 
               <Field label="Tags">
-                <div className="flex flex-wrap gap-1 rounded-md border border-white/15 bg-black/40 p-1.5">
+                <div className="flex flex-wrap gap-1.5 rounded-lg border border-border bg-surface-elevated p-2">
                   {(draft.tags ?? merged.tags ?? []).map((tag) => (
-                    <span key={tag} className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs">
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-foreground/5 px-2 py-0.5 text-xs text-foreground">
                       {tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
                         aria-label={`Remove ${tag}`}
-                        className="text-white/50 hover:text-white"
-                      >×</button>
+                        className="text-muted hover:text-foreground"
+                      ><XIcon size={10} /></button>
                     </span>
                   ))}
                   <input
@@ -287,7 +298,7 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                       }
                     }}
                     onBlur={() => tagInput && addTag(tagInput)}
-                    className="flex-1 min-w-[6rem] bg-transparent px-1 text-xs outline-none placeholder:text-white/30"
+                    className="min-w-[6rem] flex-1 bg-transparent px-1 text-xs outline-none placeholder:text-muted/70"
                   />
                 </div>
               </Field>
@@ -298,7 +309,7 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                   placeholder="Short summary…"
                   onChange={(e) => setDraft((d) => ({ ...d, summary: e.target.value }))}
                   rows={3}
-                  className="w-full resize-y rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm outline-none focus:border-white/40"
+                  className="w-full resize-y rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm leading-relaxed text-foreground outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25"
                 />
               </Field>
 
@@ -308,13 +319,13 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                   placeholder="No content extracted yet."
                   onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
                   rows={10}
-                  className="w-full resize-y rounded-md border border-white/15 bg-black/40 px-2 py-1.5 font-mono text-xs outline-none focus:border-white/40"
+                  className="w-full resize-y rounded-lg border border-border bg-surface-elevated px-3 py-2 font-mono text-xs leading-relaxed text-foreground outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25"
                 />
               </Field>
             </section>
 
-            <div className="sticky bottom-0 mt-4 -mx-5 flex items-center justify-between gap-2 border-t border-white/10 bg-[#0a0a0a]/95 px-5 py-3">
-              <span className="text-[11px] text-white/40">
+            <div className="sticky bottom-0 -mx-5 mt-6 flex items-center justify-between gap-2 border-t border-border bg-background/95 px-5 py-3 backdrop-blur-xl">
+              <span className="text-[11px] text-muted">
                 {formatDate(merged.created)}
                 {merged.updated && merged.updated !== merged.created ? ` · edited ${formatDate(merged.updated)}` : ''}
               </span>
@@ -323,23 +334,23 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                   <button
                     type="button"
                     onClick={() => setDraft({})}
-                    className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-white/30"
+                    className="rounded-full border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-foreground/30 hover:text-foreground"
                   >Discard</button>
                 ) : null}
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={!hasChanges || saving}
-                  className="rounded-full bg-white px-4 py-1.5 text-xs font-medium text-black disabled:cursor-not-allowed disabled:opacity-40"
-                >{saving ? 'Saving…' : 'Save'}</button>
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-background shadow-card transition-all hover:bg-accent/90 active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-foreground/20 disabled:text-muted disabled:shadow-none"
+                >{saving ? <Spinner size={12} tone="background" /> : null}{saving ? 'Saving…' : 'Save'}</button>
               </div>
             </div>
 
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-white/30">
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-muted/70">
               <button
                 type="button"
                 onClick={() => { void navigator.clipboard?.writeText(merged.id); showToast('ID copied'); }}
-                className="font-mono hover:text-white/60"
+                className="font-mono hover:text-muted"
                 title="Copy id"
               >{merged.id}</button>
             </div>
@@ -347,7 +358,7 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
         )}
 
         {toast ? (
-          <div className="fixed bottom-6 right-6 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-black shadow-lg">
+          <div className="fixed bottom-6 right-6 animate-fade-up rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-background shadow-elev">
             {toast}
           </div>
         ) : null}
@@ -358,8 +369,8 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[11px] uppercase tracking-wide text-white/50">{label}</span>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</span>
       {children}
     </label>
   );
@@ -374,7 +385,7 @@ function Hero({ item, zoomed, onToggleZoom }: { item: Item; zoomed: boolean; onT
       <button
         type="button"
         onClick={onToggleZoom}
-        className={`relative block w-full overflow-hidden rounded-lg border border-white/10 bg-black ${zoomed ? '' : 'max-h-96'}`}
+        className={`relative block w-full overflow-hidden rounded-xl border border-border bg-surface ${zoomed ? '' : 'max-h-96'}`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={url} alt={item.title ?? ''} className={`w-full ${zoomed ? '' : 'max-h-96 object-contain'}`} />
@@ -385,7 +396,7 @@ function Hero({ item, zoomed, onToggleZoom }: { item: Item; zoomed: boolean; onT
     const id = youtubeIdFromUrl(item.source_url ?? item.raw_url);
     if (!id) return <HeroFallback item={item} />;
     return (
-      <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-black">
+      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-surface">
         <iframe
           src={`https://www.youtube.com/embed/${id}`}
           title={item.title ?? 'YouTube video'}
@@ -404,7 +415,7 @@ function Hero({ item, zoomed, onToggleZoom }: { item: Item; zoomed: boolean; onT
           controls
           src={url}
           poster={r2Url(item) ?? undefined}
-          className="w-full max-h-96 rounded-lg border border-white/10 bg-black"
+          className="w-full max-h-96 rounded-xl border border-border bg-surface"
         />
       );
     }
@@ -416,17 +427,19 @@ function HeroFallback({ item }: { item: Item }) {
   const domain = domainFromUrl(item.source_url ?? item.raw_url);
   const favicon = domain ? `https://www.google.com/s2/favicons?sz=128&domain=${domain}` : null;
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4">
       {favicon ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={favicon} alt="" className="h-10 w-10 rounded" />
+        <img src={favicon} alt="" className="h-10 w-10 rounded-md" />
       ) : (
-        <span className="text-3xl" aria-hidden>{TYPE_GLYPH[item.type] ?? '📎'}</span>
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface-elevated text-muted" aria-hidden>
+          <TypeIcon type={item.type} size={20} strokeWidth={1.75} />
+        </span>
       )}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-white">{domain ?? item.type}</div>
+        <div className="truncate text-sm font-medium text-foreground">{domain ?? item.type}</div>
         {item.source_url || item.raw_url ? (
-          <div className="truncate text-xs text-white/50">{item.source_url ?? item.raw_url}</div>
+          <div className="truncate text-xs text-muted">{item.source_url ?? item.raw_url}</div>
         ) : null}
       </div>
     </div>

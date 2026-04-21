@@ -3,10 +3,7 @@
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { thumbnailUrl } from './ItemCard';
-
-const TYPE_GLYPH: Record<string, string> = {
-  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
-};
+import { TypeIcon } from '@/components/ui/icons';
 
 function domainFromUrl(url?: string | null): string | null {
   if (!url) return null;
@@ -39,30 +36,30 @@ export function ItemRow({ item }: { item: Item }) {
       onClick={() => drawer.open(item.id)}
       data-testid="item-row"
       data-category={item.category ?? ''}
-      className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-2 text-left transition hover:border-white/30 hover:bg-white/10"
+      className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface-elevated p-2.5 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black/40 text-lg">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-muted">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         ) : (
-          <span aria-hidden>{TYPE_GLYPH[item.type] ?? '📎'}</span>
+          <TypeIcon type={item.type} size={18} strokeWidth={1.75} />
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-white/90">
+        <div className="truncate text-sm font-medium text-foreground">
           {isPending ? `${item.status}…` : isError ? (item.error_msg ?? 'error') : (item.title ?? '(untitled)')}
         </div>
-        <div className="truncate text-xs text-white/40">
+        <div className="truncate text-xs text-muted">
           {domain ? `${domain} · ` : ''}{item.type}
         </div>
       </div>
       {item.category ? (
-        <span className="hidden shrink-0 rounded bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-white/70 sm:inline">
+        <span className="hidden shrink-0 rounded-md bg-foreground/5 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted sm:inline">
           {item.category}
         </span>
       ) : null}
-      <span className="hidden shrink-0 text-[11px] text-white/40 sm:inline">{relativeDate(item.created)}</span>
+      <span className="hidden shrink-0 text-[11px] text-muted sm:inline">{relativeDate(item.created)}</span>
     </button>
   );
 }

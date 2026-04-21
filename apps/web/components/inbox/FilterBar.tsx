@@ -1,6 +1,8 @@
 'use client';
 
 import type { Item } from '@/types';
+import type { ReactNode } from 'react';
+import { SearchIcon, XIcon, GridIcon, ListIcon, RowsIcon, ArrowUpIcon, ArrowDownIcon } from '@/components/ui/icons';
 
 export type SortMode = 'date' | 'category' | 'type';
 export type SortDirection = 'asc' | 'desc';
@@ -38,10 +40,11 @@ export function FilterBar({
   ).sort();
 
   return (
-    <div className="flex flex-col gap-3 pb-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-4 pb-5">
+      {/* Search gets its own row on mobile so it never collapses to an icon; on sm+ it shares the bar with view/sort controls. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <label className="relative flex min-w-0 flex-1 items-center">
-          <span className="absolute left-3 text-white/40" aria-hidden>⌕</span>
+          <SearchIcon size={16} className="pointer-events-none absolute left-3.5 text-muted" />
           <input
             type="search"
             value={query}
@@ -49,52 +52,56 @@ export function FilterBar({
             placeholder="Search titles, content, tags…"
             aria-label="Search inbox"
             data-testid="inbox-search"
-            className="w-full rounded-full border border-white/15 bg-black/40 px-9 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/40"
+            className="w-full rounded-full border border-border bg-surface-elevated py-2.5 pl-10 pr-10 text-sm text-foreground outline-none transition-colors placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/25"
           />
           {query ? (
             <button
               type="button"
               onClick={() => onQuery('')}
               aria-label="Clear search"
-              className="absolute right-3 text-white/40 hover:text-white"
-            >✕</button>
+              className="absolute right-3 rounded-full p-1 text-muted transition-colors hover:bg-foreground/5 hover:text-foreground"
+            ><XIcon size={14} /></button>
           ) : null}
         </label>
 
-        <div role="radiogroup" aria-label="View mode" className="flex overflow-hidden rounded-full border border-white/15">
-          <ViewButton active={view === 'grid'} onClick={() => onView('grid')} label="Grid" testId="view-grid" glyph="▦" />
-          <ViewButton active={view === 'list'} onClick={() => onView('list')} label="List" testId="view-list" glyph="≡" />
-          <ViewButton active={view === 'detail'} onClick={() => onView('detail')} label="Detail" testId="view-detail" glyph="☰" />
-        </div>
+        <div className="flex items-center gap-2">
+          <div role="radiogroup" aria-label="View mode" className="flex overflow-hidden rounded-full border border-border bg-surface-elevated p-0.5">
+            <ViewButton active={view === 'grid'}   onClick={() => onView('grid')}   label="Grid"   testId="view-grid"   icon={<GridIcon size={14} />} />
+            <ViewButton active={view === 'list'}   onClick={() => onView('list')}   label="List"   testId="view-list"   icon={<ListIcon size={14} />} />
+            <ViewButton active={view === 'detail'} onClick={() => onView('detail')} label="Detail" testId="view-detail" icon={<RowsIcon size={14} />} />
+          </div>
 
-        <label className="flex items-center gap-2 text-xs text-white/60">
-          Sort:
-          <select
-            value={sort}
-            onChange={(e) => onSort(e.target.value as SortMode)}
-            className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-sm text-white"
-            data-testid="sort-select"
+          <label className="flex items-center gap-1.5 text-xs text-muted">
+            <span className="hidden sm:inline">Sort</span>
+            <select
+              value={sort}
+              onChange={(e) => onSort(e.target.value as SortMode)}
+              className="rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-foreground/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
+              data-testid="sort-select"
+            >
+              <option value="date">Date</option>
+              <option value="category">Category</option>
+              <option value="type">Type</option>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            onClick={() => onDirection(direction === 'asc' ? 'desc' : 'asc')}
+            aria-label={`Direction: ${direction === 'asc' ? 'ascending' : 'descending'}`}
+            title={direction === 'asc' ? 'Ascending' : 'Descending'}
+            data-testid="sort-direction"
+            className="inline-flex items-center justify-center rounded-md border border-border bg-surface-elevated p-1.5 text-foreground/80 transition-all hover:border-foreground/30 hover:text-foreground active:scale-95"
           >
-            <option value="date">Date</option>
-            <option value="category">Category</option>
-            <option value="type">Type</option>
-          </select>
-        </label>
-
-        <button
-          type="button"
-          onClick={() => onDirection(direction === 'asc' ? 'desc' : 'asc')}
-          aria-label={`Direction: ${direction === 'asc' ? 'ascending' : 'descending'}`}
-          title={direction === 'asc' ? 'Ascending' : 'Descending'}
-          data-testid="sort-direction"
-          className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-sm text-white hover:border-white/30"
-        >{direction === 'asc' ? '↑' : '↓'}</button>
+            {direction === 'asc' ? <ArrowUpIcon size={14} /> : <ArrowDownIcon size={14} />}
+          </button>
+        </div>
       </div>
 
       <div
         role="tablist"
         aria-label="Filter by category"
-        className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1"
+        className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5"
       >
         <FilterPill
           active={activeCategory === null}
@@ -123,13 +130,13 @@ function ViewButton({
   onClick,
   label,
   testId,
-  glyph,
+  icon,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   testId: string;
-  glyph: string;
+  icon: ReactNode;
 }) {
   return (
     <button
@@ -140,10 +147,12 @@ function ViewButton({
       title={label}
       onClick={onClick}
       data-testid={testId}
-      className={`px-2.5 py-1 text-sm transition ${
-        active ? 'bg-white text-black' : 'text-white/70 hover:bg-white/10 hover:text-white'
+      className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-sm transition-all ${
+        active
+          ? 'bg-primary text-background shadow-card'
+          : 'text-muted hover:bg-foreground/5 hover:text-foreground'
       }`}
-    >{glyph}</button>
+    >{icon}</button>
   );
 }
 
@@ -165,10 +174,10 @@ function FilterPill({
       aria-selected={active}
       data-testid={testId}
       onClick={onClick}
-      className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs transition ${
+      className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ease-out-expo active:scale-[0.97] ${
         active
-          ? 'border-white bg-white text-black'
-          : 'border-white/15 text-white/70 hover:border-white/30 hover:text-white'
+          ? 'border-primary bg-primary text-background shadow-card'
+          : 'border-border bg-surface-elevated text-muted hover:border-foreground/25 hover:text-foreground'
       }`}
     >
       {children}

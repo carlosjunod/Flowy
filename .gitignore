@@ -4,6 +4,11 @@ dist/
 coverage/
 playwright-report/
 test-results/
+.playwright-baseline/
+.playwright-iter1/
+.playwright-iter2/
+.playwright-final/
+.playwright-scripts/
 *.tsbuildinfo
 .env
 .env.local

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { ChatMessage, type ChatItemRef } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+import { SparkleIcon } from '@/components/ui/icons';
 
 export interface ChatMessageData {
   role: 'user' | 'assistant';
@@ -70,19 +71,34 @@ export function ChatWindow() {
   const empty = messages.length === 0;
 
   return (
-    <div className="flex h-full flex-col">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
+    <div className="relative flex h-full flex-col">
+      {empty ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-[38%] -z-0 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-halo-accent blur-2xl animate-halo-drift"
+        />
+      ) : null}
+      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto px-4 py-8 sm:px-6">
         {empty ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-center text-white/70">
-            <div className="text-6xl" aria-hidden>💬</div>
-            <h2 className="text-lg font-semibold text-white">Ask anything about your saved content</h2>
-            <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex h-full flex-col items-center justify-center gap-5 text-center animate-fade-up">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/25 bg-accent/10 text-accent">
+              <SparkleIcon size={32} strokeWidth={1.5} />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-display text-4xl leading-[1.1] text-foreground sm:text-5xl">
+                Ask anything about <br /><span className="italic text-accent">your saved content</span>
+              </h2>
+              <p className="max-w-md text-sm text-muted">
+                Tryflowy searches across every article, screenshot, video, and receipt you've ever shared.
+              </p>
+            </div>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
               {EXAMPLES.map((ex) => (
                 <button
                   key={ex}
                   type="button"
                   onClick={() => void sendMessage(ex)}
-                  className="rounded-full border border-white/15 px-3 py-1 text-xs hover:border-white/30 hover:text-white"
+                  className="rounded-full border border-border bg-surface-elevated px-3.5 py-1.5 text-xs font-medium text-foreground transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   {ex}
                 </button>
@@ -90,14 +106,14 @@ export function ChatWindow() {
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-5 stagger-child">
             {messages.map((m, i) => (
               <ChatMessage key={i} message={m} />
             ))}
           </div>
         )}
       </div>
-      <div className="border-t border-white/10 bg-black/40 p-4">
+      <div className="relative z-10 border-t border-border/70 bg-background/80 p-4 backdrop-blur-xl sm:px-6">
         <ChatInput onSend={sendMessage} disabled={streaming} />
       </div>
     </div>

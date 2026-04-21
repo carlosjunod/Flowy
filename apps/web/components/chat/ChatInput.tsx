@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, type KeyboardEvent } from 'react';
+import { SendIcon } from '@/components/ui/icons';
 
 interface Props {
   onSend: (text: string) => void | Promise<void>;
@@ -32,6 +33,8 @@ export function ChatInput({ onSend, disabled }: Props) {
     }
   }
 
+  const canSend = !disabled && value.trim().length > 0;
+
   return (
     <form
       onSubmit={(e) => {
@@ -40,27 +43,37 @@ export function ChatInput({ onSend, disabled }: Props) {
       }}
       className="mx-auto flex max-w-3xl items-end gap-2"
     >
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKey}
-        rows={1}
-        placeholder="Ask about your saved content…"
-        className="flex-1 resize-none rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-sm outline-none focus:border-white/40"
-        disabled={disabled}
-        data-testid="chat-input"
-      />
+      <div className="relative flex-1">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKey}
+          rows={1}
+          placeholder="Ask about your saved content…"
+          className="w-full resize-none rounded-2xl border border-border bg-surface-elevated px-4 py-3 pr-12 text-sm text-foreground outline-none transition-colors placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:opacity-60"
+          disabled={disabled}
+          data-testid="chat-input"
+        />
+      </div>
       <button
         type="submit"
-        disabled={disabled || value.trim().length === 0}
-        className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-40"
+        disabled={!canSend}
+        aria-label="Send message"
+        className={[
+          'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-150 ease-out-expo',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'active:scale-[0.95] disabled:cursor-not-allowed',
+          canSend
+            ? 'bg-accent text-background shadow-card hover:bg-accent/90'
+            : 'bg-surface text-muted border border-border',
+        ].join(' ')}
         data-testid="chat-send"
       >
         {disabled ? (
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
         ) : (
-          'Send'
+          <SendIcon size={16} strokeWidth={2} />
         )}
       </button>
     </form>

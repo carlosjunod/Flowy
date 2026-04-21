@@ -2,8 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens — Warm Paper palette.
+ * Values are HSL triplets (no commas) to play with Tailwind's <alpha-value> syntax.
+ * Category aliases for pills live at the bottom; keep one file so palette swaps are atomic.
+ */
+:root {
+  --color-bg: 40 30% 97%;
+  --color-surface: 40 25% 94%;
+  --color-surface-elevated: 0 0% 100%;
+  --color-primary: 20 14% 10%;
+  --color-accent: 15 75% 50%;
+  --color-text: 20 14% 10%;
+  --color-text-muted: 20 8% 38%;
+  --color-border: 30 12% 82%;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Instrument Serif', ui-serif, Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 html, body {
-  background: #0a0a0a;
-  color: #fafafa;
+  background: hsl(var(--color-bg));
+  color: hsl(var(--color-text));
   min-height: 100vh;
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Keep the noise subtle — a single radial on body creates depth without a runtime cost. */
+body {
+  background-image:
+    radial-gradient(at 15% 0%, hsl(var(--color-accent) / 0.06) 0, transparent 45%),
+    radial-gradient(at 85% 100%, hsl(var(--color-primary) / 0.04) 0, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Selection tint uses the accent but at low intensity so it never feels shouty. */
+::selection {
+  background: hsl(var(--color-accent) / 0.25);
+  color: hsl(var(--color-text));
+}
+
+/* Accessible focus ring for keyboard users only — applied globally, components may override. */
+:focus-visible {
+  outline: 2px solid hsl(var(--color-accent) / 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect user preference — collapse motion to opacity-only or no-op. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Category pill utilities. Light-theme flip of the previous dark map:
+ * dark: bg-X-500/20 text-X-200  ->  light: bg-X-100 text-X-800.
+ * Exposed as utilities so ItemCard can keep its hash→index logic unchanged.
+ */
+@layer utilities {
+  .cat-rose      { @apply bg-rose-100    text-rose-800; }
+  .cat-amber     { @apply bg-amber-100   text-amber-800; }
+  .cat-emerald   { @apply bg-emerald-100 text-emerald-800; }
+  .cat-sky       { @apply bg-sky-100     text-sky-800; }
+  .cat-violet    { @apply bg-violet-100  text-violet-800; }
+  .cat-fuchsia   { @apply bg-fuchsia-100 text-fuchsia-800; }
+  .cat-default   { @apply bg-foreground/10 text-foreground/70; }
+
+  /* Micro-animation helpers kept at utility layer so they compose with arbitrary delays. */
+  .stagger-child > * {
+    animation: fade-up 380ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .stagger-child > *:nth-child(1)  { animation-delay: 0ms;   }
+  .stagger-child > *:nth-child(2)  { animation-delay: 35ms;  }
+  .stagger-child > *:nth-child(3)  { animation-delay: 70ms;  }
+  .stagger-child > *:nth-child(4)  { animation-delay: 105ms; }
+  .stagger-child > *:nth-child(5)  { animation-delay: 140ms; }
+  .stagger-child > *:nth-child(6)  { animation-delay: 175ms; }
+  .stagger-child > *:nth-child(7)  { animation-delay: 210ms; }
+  .stagger-child > *:nth-child(8)  { animation-delay: 245ms; }
+  .stagger-child > *:nth-child(9)  { animation-delay: 280ms; }
+  .stagger-child > *:nth-child(10) { animation-delay: 315ms; }
+  .stagger-child > *:nth-child(n+11) { animation-delay: 350ms; }
+
+  /* Editorial utilities. */
+  .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
