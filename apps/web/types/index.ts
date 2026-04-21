@@ -27,6 +27,9 @@ export interface Item {
   error_msg?: string;
   source_url?: string;
   media?: MediaSlide[];
+  og_image?: string;
+  og_description?: string;
+  site_name?: string;
   created: string;
   updated: string;
 }

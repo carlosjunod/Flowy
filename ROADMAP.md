@@ -19,6 +19,7 @@ Universal AI inbox. Share anything → AI processes it → chat to find it.
 | 08 | iOS Share Extension | Swift thin client, posts to ingest API | TODO |
 | 09 | Polish + Smoke Test | PWA, error states, full E2E smoke test | TODO |
 | 10 | Video Pipeline | TikTok + Instagram Reels: download audio, transcribe, discard video | TODO |
+| 11 | Native iOS/macOS App: TestFlight-First | Xcode project, Sign in with Apple, Universal Links, privacy manifest, TestFlight build | TODO |
 
 ---
 
@@ -180,3 +181,29 @@ Universal AI inbox. Share anything → AI processes it → chat to find it.
 - Lighthouse PWA score ≥ 80
 - No unhandled promise rejections in browser console during smoke test
 - App installs as PWA on iOS Safari
+
+---
+
+### Cycle 11 — Native iOS/macOS App: TestFlight-First
+
+**Goal**: Finish the Xcode project from Cycle 08, add Sign in with Apple so users never paste tokens, wire Universal Links so shared `/item/xyz` links open the app, and ship a TestFlight build available to external testers via email.
+
+**Delivers**:
+- `apps/ios/Tryflowy.xcodeproj/` with three targets (main app, iOS share extension, macOS share extension) fully configured with App Groups, Keychain Sharing, Associated Domains
+- Sign in with Apple flow in `SignInView.swift` + server-side identity token validation at `/api/auth/apple` + `apple_sub` on PocketBase users
+- Universal Links via `/.well-known/apple-app-site-association` Next.js route handler
+- Privacy manifests (`PrivacyInfo.xcprivacy`) for all three targets
+- First TestFlight build uploaded, internally testable via TestFlight app
+- Beta App Review submitted for external tester distribution
+- `DECISIONS.md` updated with SIWA approach rationale
+
+**Definition of Done**:
+- `xcodebuild` succeeds for all three schemes with automatic signing
+- SIWA button on fresh install → app authenticated without manual token paste
+- Share extension POSTs to `/api/ingest` using the SIWA-acquired token from shared Keychain
+- `https://tryflowy.app/item/xxx` from Messages opens the native app, not Safari
+- `tests/unit/apple-auth.test.ts` all pass (JWKS validation, tampered/expired/wrong-audience rejection)
+- TestFlight build visible in App Store Connect, installable via TestFlight app on a physical device
+- Out of scope: App Intents, push notifications, widgets, full App Store submission — tracked for Cycle 12
+
+See `CYCLE-11.md` for task breakdown.

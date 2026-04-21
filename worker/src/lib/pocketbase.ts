@@ -29,6 +29,9 @@ export interface ItemRecord {
   status: ItemStatus;
   error_msg?: string;
   source_url?: string;
+  og_image?: string;
+  og_description?: string;
+  site_name?: string;
   element?: string;
   media?: MediaSlide[];
   created: string;
