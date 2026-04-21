@@ -1,0 +1,213 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - navigation "Primary" [ref=e4]:
+      - link "Tryflowy" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: t
+        - generic [ref=e7]: Tryflowy
+      - link "Sign in" [ref=e9] [cursor=pointer]:
+        - /url: /login
+  - main [ref=e10]:
+    - region "Save everything. Find anything." [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]: Now in private beta
+        - heading "Save everything. Find anything." [level=1] [ref=e15]:
+          - text: Save everything.
+          - text: Find anything.
+        - paragraph [ref=e16]: Share anything from your phone or Mac. Tryflowy’s AI organizes it instantly. Just ask when you need it back.
+        - generic [ref=e17]:
+          - link "Get started free" [ref=e18] [cursor=pointer]:
+            - /url: "#get-started"
+            - text: Get started free
+            - img [ref=e19]
+          - link "See a demo" [ref=e21] [cursor=pointer]:
+            - /url: "#how-it-works"
+        - generic [ref=e22]:
+          - generic [ref=e23]: share
+          - generic [ref=e24]: →
+          - generic [ref=e25]: organize
+          - generic [ref=e26]: →
+          - generic [ref=e27]: ask
+    - region "Three things, done beautifully." [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: What it does
+          - heading "Three things, done beautifully." [level=2] [ref=e32]
+        - list [ref=e33]:
+          - listitem [ref=e34]:
+            - generic [ref=e35]: "01"
+            - heading "Capture without friction" [level=3] [ref=e36]
+            - paragraph [ref=e37]: Share links, tweets, videos, images, receipts — anything — directly from your phone or Mac. No apps to learn, no folders to maintain.
+          - listitem [ref=e38]:
+            - generic [ref=e39]: "02"
+            - heading "AI does the work" [level=3] [ref=e40]
+            - paragraph [ref=e41]: Your inbox auto-organizes by content type, context, and relevance. No tagging. No filing. Just clarity.
+          - listitem [ref=e42]:
+            - generic [ref=e43]: "03"
+            - heading "Chat to retrieve" [level=3] [ref=e44]
+            - paragraph [ref=e45]: Ask plain-English questions and get exactly what you’re looking for, even months later. Your inbox understands you.
+    - region "A quiet model that notices things." [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: What the AI does
+          - heading "A quiet model that notices things." [level=2] [ref=e50]
+          - paragraph [ref=e51]: Four jobs happen the moment you share. You don’t see them. You just feel the difference later, when you ask.
+        - list [ref=e52]:
+          - listitem [ref=e53]:
+            - img [ref=e55]
+            - generic [ref=e59]:
+              - heading "Classify" [level=3] [ref=e60]
+              - paragraph [ref=e61]: Understands what kind of thing you saved — article, image, video, receipt — without you saying a word.
+          - listitem [ref=e62]:
+            - img [ref=e64]
+            - generic [ref=e67]:
+              - heading "Extract" [level=3] [ref=e68]
+              - paragraph [ref=e69]: "Pulls out the meaningful parts: prices from receipts, transcripts from videos, quotes from articles, automatically."
+          - listitem [ref=e70]:
+            - img [ref=e72]
+            - generic [ref=e75]:
+              - heading "Remember" [level=3] [ref=e76]
+              - paragraph [ref=e77]: Connects related items across everything you’ve ever saved. One thought leads to another, like your mind does.
+          - listitem [ref=e78]:
+            - img [ref=e80]
+            - generic [ref=e83]:
+              - heading "Retrieve via chat" [level=3] [ref=e84]
+              - paragraph [ref=e85]: Ask “show me coffee shops I saved” or “what was that article about AI pricing?” Natural language, natural results.
+    - region "Share, and forget." [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - paragraph [ref=e89]: How it works
+          - heading "Share, and forget." [level=2] [ref=e90]
+        - list "Three step flow" [ref=e91]:
+          - listitem [ref=e92]:
+            - generic [ref=e93]: "1"
+            - heading "Share anywhere" [level=3] [ref=e94]
+            - paragraph [ref=e95]: Hit share from Safari, Twitter, TikTok, Photos — or paste a link. One tap. That’s it.
+          - listitem [ref=e96]:
+            - generic [ref=e97]: "2"
+            - heading "AI organizes" [level=3] [ref=e98]
+            - paragraph [ref=e99]: In seconds, Tryflowy classifies what you shared, extracts the goods, and locks it away safe.
+          - listitem [ref=e100]:
+            - generic [ref=e101]: "3"
+            - heading "Chat to find" [level=3] [ref=e102]
+            - paragraph [ref=e103]: Ask your inbox anything. It learns what matters to you. The more you ask, the smarter it gets.
+    - region "Three ways in. Pick yours." [ref=e104]:
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - paragraph [ref=e107]: Get started
+          - heading "Three ways in. Pick yours." [level=2] [ref=e108]
+        - list [ref=e109]:
+          - listitem [ref=e110]:
+            - img [ref=e112]
+            - paragraph [ref=e115]: iOS App
+            - heading "For people who live on their phone." [level=3] [ref=e116]
+            - paragraph [ref=e117]: Download from the App Store, sign in, start sharing. Works offline too.
+            - link "Download on the App Store" [ref=e118] [cursor=pointer]:
+              - /url: "#"
+              - text: Download on the App Store
+              - img [ref=e119]
+          - listitem [ref=e121]:
+            - img [ref=e123]
+            - paragraph [ref=e127]: Web Account
+            - heading "For people who think at their desk." [level=3] [ref=e128]
+            - paragraph [ref=e129]: Create an account at tryflowy.app and access everything from any browser.
+            - link "Create free account" [ref=e130] [cursor=pointer]:
+              - /url: /login
+              - text: Create free account
+              - img [ref=e131]
+          - listitem [ref=e133]:
+            - img [ref=e135]
+            - paragraph [ref=e137]: iOS Shortcut
+            - heading "For power users." [level=3] [ref=e138]
+            - paragraph [ref=e139]: Add Tryflowy to your Shortcuts. One tap saves to your inbox from anywhere.
+            - link "Install the Shortcut" [ref=e140] [cursor=pointer]:
+              - /url: "#"
+              - text: Install the Shortcut
+              - img [ref=e141]
+    - region "Straight answers." [ref=e143]:
+      - generic [ref=e144]:
+        - generic [ref=e145]:
+          - paragraph [ref=e146]: Frequently asked
+          - heading "Straight answers." [level=2] [ref=e147]
+        - generic [ref=e148]:
+          - group [ref=e149]:
+            - generic "How much does it cost?" [ref=e150] [cursor=pointer]:
+              - generic [ref=e151]: How much does it cost?
+              - img [ref=e153]
+          - group [ref=e155]:
+            - generic "Who can see what I share?" [ref=e156] [cursor=pointer]:
+              - generic [ref=e157]: Who can see what I share?
+              - img [ref=e159]
+          - group [ref=e161]:
+            - generic "Can I export my data?" [ref=e162] [cursor=pointer]:
+              - generic [ref=e163]: Can I export my data?
+              - img [ref=e165]
+          - group [ref=e167]:
+            - generic "What platforms do you support today?" [ref=e168] [cursor=pointer]:
+              - generic [ref=e169]: What platforms do you support today?
+              - img [ref=e171]
+          - group [ref=e173]:
+            - generic "What AI model powers this?" [ref=e174] [cursor=pointer]:
+              - generic [ref=e175]: What AI model powers this?
+              - img [ref=e177]
+  - contentinfo "Tryflowy footer" [ref=e179]:
+    - heading "Tryflowy footer" [level=2] [ref=e180]
+    - generic [ref=e181]:
+      - generic [ref=e182]:
+        - generic [ref=e183]:
+          - link "Tryflowy" [ref=e184] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e185]: t
+            - text: Tryflowy
+          - paragraph [ref=e186]: The AI inbox that actually organizes itself.
+        - generic [ref=e187]:
+          - paragraph [ref=e188]: Product
+          - list [ref=e189]:
+            - listitem [ref=e190]:
+              - link "Features" [ref=e191] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e192]:
+              - link "Pricing" [ref=e193] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e194]:
+              - link "Security" [ref=e195] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e196]:
+          - paragraph [ref=e197]: Company
+          - list [ref=e198]:
+            - listitem [ref=e199]:
+              - link "Blog" [ref=e200] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e201]:
+              - link "About" [ref=e202] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e203]:
+              - link "Contact" [ref=e204] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e205]:
+          - paragraph [ref=e206]: Resources
+          - list [ref=e207]:
+            - listitem [ref=e208]:
+              - link "Help center" [ref=e209] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e210]:
+              - link "API docs" [ref=e211] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e212]:
+              - link "Status page" [ref=e213] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e214]:
+          - paragraph [ref=e215]: Legal
+          - list [ref=e216]:
+            - listitem [ref=e217]:
+              - link "Privacy" [ref=e218] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e219]:
+              - link "Terms" [ref=e220] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e221]:
+              - link "Cookies" [ref=e222] [cursor=pointer]:
+                - /url: "#"
+      - generic [ref=e223]:
+        - paragraph [ref=e224]: © 2026 Tryflowy. Made by humans and Claude.
+        - paragraph [ref=e225]: Private beta · tryflowy.app
