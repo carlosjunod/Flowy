@@ -113,4 +113,73 @@ describe('processUrl', () => {
     await processUrl(baseItem());
     expect(createEmbeddingMock).toHaveBeenCalledWith('item_1', [0.1, 0.2, 0.3]);
   });
+
+  it('writes og_image, og_description, site_name when extractor returns them', async () => {
+    extractMock.mockResolvedValue({
+      title: 'Vercel Blog',
+      content: '<p>Hello</p>',
+      url: 'https://vercel.com/blog',
+      image: 'https://vercel.com/og.png',
+      description: 'Latest posts from Vercel',
+      source: 'Vercel',
+    });
+    extractStructuredDataMock.mockResolvedValue({ title: 't', summary: 's', tags: [], category: 'c' });
+    generateEmbeddingMock.mockResolvedValue([0]);
+
+    await processUrl(baseItem());
+
+    expect(updateItemMock).toHaveBeenCalledWith(
+      'item_1',
+      expect.objectContaining({
+        og_image: 'https://vercel.com/og.png',
+        og_description: 'Latest posts from Vercel',
+        site_name: 'Vercel',
+      }),
+    );
+  });
+
+  it('writes empty strings for og fields when extractor omits them', async () => {
+    extractMock.mockResolvedValue({
+      title: 't',
+      content: '<p>hello</p>',
+      url: 'x',
+    });
+    extractStructuredDataMock.mockResolvedValue({ title: 't', summary: 's', tags: [], category: 'c' });
+    generateEmbeddingMock.mockResolvedValue([0]);
+
+    await processUrl(baseItem());
+
+    expect(updateItemMock).toHaveBeenCalledWith(
+      'item_1',
+      expect.objectContaining({
+        og_image: '',
+        og_description: '',
+        site_name: '',
+      }),
+    );
+  });
+
+  it('truncates og_description to 500 chars and site_name to 100', async () => {
+    const longDesc = 'x'.repeat(800);
+    const longSource = 'y'.repeat(200);
+    extractMock.mockResolvedValue({
+      title: 't',
+      content: '<p>c</p>',
+      url: 'x',
+      image: 'https://i.example/og.png',
+      description: longDesc,
+      source: longSource,
+    });
+    extractStructuredDataMock.mockResolvedValue({ title: 't', summary: 's', tags: [], category: 'c' });
+    generateEmbeddingMock.mockResolvedValue([0]);
+
+    await processUrl(baseItem());
+
+    const call = updateItemMock.mock.calls[0]?.[1] as {
+      og_description: string;
+      site_name: string;
+    };
+    expect(call.og_description.length).toBe(500);
+    expect(call.site_name.length).toBe(100);
+  });
 });

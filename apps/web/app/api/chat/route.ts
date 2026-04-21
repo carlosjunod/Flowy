@@ -32,6 +32,23 @@ async function loadItemsByIds(ids: string[], userId: string, token: string): Pro
   return list;
 }
 
+function describeStreamError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  try {
+    const parsed = JSON.parse(raw) as { error?: { type?: string; message?: string } };
+    if (parsed?.error?.type === 'overloaded_error') {
+      return "⚠️ Claude is temporarily overloaded. Please try again in a few seconds.";
+    }
+    if (parsed?.error?.type === 'rate_limit_error') {
+      return "⚠️ Rate limit reached. Please wait a moment and retry.";
+    }
+    if (parsed?.error?.message) return `⚠️ ${parsed.error.message}`;
+  } catch {
+    // err.message wasn't JSON — fall through to the generic path.
+  }
+  return "⚠️ Streaming failed. Please try again.";
+}
+
 function buildContext(items: Item[]): string {
   return items
     .map((item) => {
@@ -124,7 +141,14 @@ ${context}`;
           }
           controller.close();
         } catch (err) {
-          controller.error(err);
+          // Upstream (Anthropic) errored mid-stream — e.g. overloaded_error,
+          // rate limit, or dropped connection. Calling controller.error() here
+          // leaves the HTTP response half-flushed and surfaces in the browser
+          // as `TypeError: Failed to fetch` instead of a readable message.
+          // Enqueue a user-facing note and close cleanly so the fetch resolves.
+          console.error('[chat] stream error:', err);
+          controller.enqueue(encoder.encode(describeStreamError(err)));
+          controller.close();
         }
       },
     });

@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 import PocketBase from 'pocketbase';
+import { getQueue } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 
@@ -61,16 +60,6 @@ interface IngestBody {
   raw_url?: string;
   raw_image?: string;
   source_url?: string;
-}
-
-let _queue: Queue | null = null;
-function getQueue(): Queue {
-  if (_queue) return _queue;
-  const connection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-  });
-  _queue = new Queue('ingest', { connection });
-  return _queue;
 }
 
 async function createItem(userToken: string, userId: string, data: Record<string, unknown>): Promise<{ id: string }> {

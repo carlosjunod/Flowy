@@ -100,7 +100,7 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
     const unsubscribe = drawer.subscribe((m) => {
       if (m.kind === 'deleted') {
         setItems((prev) => prev.filter((i) => i.id !== m.id));
-      } else if (m.kind === 'updated') {
+      } else if (m.kind === 'updated' || m.kind === 'retried') {
         setItems((prev) => prev.map((i) => (i.id === m.item.id ? { ...i, ...m.item } : i)));
       }
     });
