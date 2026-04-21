@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Tryflowy',
-    short_name: 'Tryflowy',
+    name: 'Flowy',
+    short_name: 'Flowy',
     description: 'Universal AI inbox. Share anything → AI processes → chat to find it.',
     start_url: '/chat',
     scope: '/',

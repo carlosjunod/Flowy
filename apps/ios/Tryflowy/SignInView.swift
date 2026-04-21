@@ -15,7 +15,7 @@ struct SignInView: View {
       Image(systemName: "tray.fill")
         .font(.system(size: 64))
         .foregroundStyle(.tint)
-      Text("Tryflowy")
+      Text("Flowy")
         .font(.largeTitle)
         .bold()
       Text("Your AI-powered inbox")
@@ -87,7 +87,7 @@ struct SignInView: View {
       switch authError {
       case .badResponse(let status, let body):
         if status == 400, let body, body.contains("EMAIL_REQUIRED_FIRST_LOGIN") {
-          return "Apple didn't share your email. Sign out of Apple ID in Settings → Password & Security → Sign in with Apple → Tryflowy → Stop Using, then try again."
+          return "Apple didn't share your email. Sign out of Apple ID in Settings → Password & Security → Sign in with Apple → Flowy → Stop Using, then try again."
         }
         return "Sign-in failed (\(status)). \(body ?? "")"
       case .network(let err):

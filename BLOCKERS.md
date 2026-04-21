@@ -1,4 +1,4 @@
-# Tryflowy — BLOCKERS.md
+# Flowy — BLOCKERS.md
 
 Template for logging blockers during autonomous execution. One entry per blocker.
 

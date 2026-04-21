@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Tryflowy",
-    "description": "Local dev collection for the Tryflowy AI inbox.\n\nWorkflow:\n1. Run **Auth / Login** first — this sets `{{token}}` + `{{userId}}` as collection variables.\n2. Use **Ingest / *** to enqueue content of any type.\n3. Use **Items / Get by ID** to poll status until `ready` or `error`.\n4. Use **Chat / Ask** to query your inbox.\n5. Use **Admin / Create test user** once, only if the users collection is empty.\n\nSwitch environments by overriding `{{pbUrl}}` and `{{appUrl}}` at the collection or environment level.",
+    "name": "Flowy",
+    "description": "Local dev collection for the Flowy AI inbox.\n\nWorkflow:\n1. Run **Auth / Login** first — this sets `{{token}}` + `{{userId}}` as collection variables.\n2. Use **Ingest / *** to enqueue content of any type.\n3. Use **Items / Get by ID** to poll status until `ready` or `error`.\n4. Use **Chat / Ask** to query your inbox.\n5. Use **Admin / Create test user** once, only if the users collection is empty.\n\nSwitch environments by overriding `{{pbUrl}}` and `{{appUrl}}` at the collection or environment level.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_postman_id": "8a3f2b1e-tryflowy-2026",
     "version": "1.0.0"

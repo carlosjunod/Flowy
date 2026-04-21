@@ -150,7 +150,7 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         <EmptyState
           icon={<InboxIcon size={36} strokeWidth={1.5} className="text-accent" />}
           title="Nothing saved yet"
-          body="Share something from any app to get started — Tryflowy will extract, classify, and file it automatically."
+          body="Share something from any app to get started — Flowy will extract, classify, and file it automatically."
         />
       ) : filteredEmpty ? (
         <EmptyState

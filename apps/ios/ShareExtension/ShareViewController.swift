@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 import MobileCoreServices
 
 /// Thin share extension: reads `pb_token` from the shared keychain,
-/// posts URL or image to the Tryflowy ingest API, shows a success/failure banner.
+/// posts URL or image to the Flowy ingest API, shows a success/failure banner.
 class ShareViewController: UIViewController {
   private let statusLabel = UILabel()
   private let retryButton = UIButton(type: .system)
@@ -44,7 +44,7 @@ class ShareViewController: UIViewController {
   }
 
   private func showLoginRequired() {
-    statusLabel.text = "Please log in to Tryflowy first"
+    statusLabel.text = "Please log in to Flowy first"
     retryButton.setTitle("Close", for: .normal)
     retryButton.isHidden = false
     lastBody = { [weak self] in
@@ -68,7 +68,7 @@ class ShareViewController: UIViewController {
   }
 
   private func handleShare() async {
-    await MainActor.run { statusLabel.text = "Saving to Tryflowy…" }
+    await MainActor.run { statusLabel.text = "Saving to Flowy…" }
     guard let client = setupClient() else {
       await MainActor.run { statusLabel.text = "Invalid app URL" }
       return
@@ -132,7 +132,7 @@ class ShareViewController: UIViewController {
 
   @MainActor
   private func finishSuccess() {
-    statusLabel.text = "Saved to Tryflowy ✓"
+    statusLabel.text = "Saved to Flowy ✓"
     retryButton.isHidden = true
     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
       self.extensionContext?.completeRequest(returningItems: nil)

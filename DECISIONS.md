@@ -1,4 +1,4 @@
-# Tryflowy — DECISIONS.md
+# Flowy — DECISIONS.md
 
 ## Stack Decisions
 

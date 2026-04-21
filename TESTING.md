@@ -1,4 +1,4 @@
-# Tryflowy — TESTING.md
+# Flowy — TESTING.md
 
 ## Unit Testing
 

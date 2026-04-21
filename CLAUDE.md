@@ -1,7 +1,7 @@
-# Tryflowy — CLAUDE.md
+# Flowy — CLAUDE.md
 
 ## Project
-**Name**: Tryflowy  
+**Name**: Flowy  
 **Domain**: tryflowy.app  
 **Description**: Universal AI-powered inbox. Share anything from iOS/macOS share sheet → AI processes, classifies, and extracts content → chat interface to find everything with natural language.
 

@@ -1,4 +1,4 @@
-# Tryflowy — ROADMAP.md
+# Flowy — ROADMAP.md
 
 ## Product Vision
 Universal AI inbox. Share anything → AI processes it → chat to find it.
@@ -155,7 +155,7 @@ Universal AI inbox. Share anything → AI processes it → chat to find it.
 **Delivers**:
 - `ShareViewController.swift` — handles URL, image, and plain text share types
 - Auth token stored in iOS Keychain
-- Success/failure feedback UI ("Saved to Tryflowy ✓" / "Failed — tap to retry")
+- Success/failure feedback UI ("Saved to Flowy ✓" / "Failed — tap to retry")
 - macOS share extension target (same codebase)
 
 **Definition of Done**:

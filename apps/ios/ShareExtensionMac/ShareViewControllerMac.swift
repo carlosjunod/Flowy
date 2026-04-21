@@ -12,7 +12,7 @@ final class ShareViewControllerMac: NSViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let label = NSTextField(labelWithString: "Saving to Tryflowy…")
+    let label = NSTextField(labelWithString: "Saving to Flowy…")
     label.alignment = .center
     label.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(label)
@@ -22,7 +22,7 @@ final class ShareViewControllerMac: NSViewController {
     ])
 
     guard KeychainStore.read("pb_token") != nil else {
-      label.stringValue = "Please log in to Tryflowy first"
+      label.stringValue = "Please log in to Flowy first"
       DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
         self.extensionContext?.completeRequest(returningItems: nil)
       }

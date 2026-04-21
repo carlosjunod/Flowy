@@ -1,4 +1,4 @@
-# Tryflowy — Postman collection
+# Flowy — Postman collection
 
 Two files:
 
@@ -7,7 +7,7 @@ Two files:
 
 ## Import
 
-Postman → Import → drag both files. Pick **Tryflowy — Local** as the active environment.
+Postman → Import → drag both files. Pick **Flowy — Local** as the active environment.
 
 ## Typical flow
 

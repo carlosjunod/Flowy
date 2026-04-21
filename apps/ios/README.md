@@ -1,4 +1,4 @@
-# Tryflowy iOS / macOS App + Share Extension
+# Flowy iOS / macOS App + Share Extension
 
 ## Overview
 

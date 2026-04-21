@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Tryflowy',
+  title: 'Flowy',
   description: 'Universal AI inbox. Share anything → AI processes → chat to find it.',
 };
 

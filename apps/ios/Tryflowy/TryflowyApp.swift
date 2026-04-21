@@ -3,7 +3,7 @@ import SwiftUI
 import WebKit
 
 @main
-struct TryflowyApp: App {
+struct FlowyApp: App {
   @StateObject private var auth = AuthState()
   @StateObject private var web: WebViewModel
 

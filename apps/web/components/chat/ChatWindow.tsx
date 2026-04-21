@@ -89,7 +89,7 @@ export function ChatWindow() {
                 Ask anything about <br /><span className="italic text-accent">your saved content</span>
               </h2>
               <p className="max-w-md text-sm text-muted">
-                Tryflowy searches across every article, screenshot, video, and receipt you've ever shared.
+                Flowy searches across every article, screenshot, video, and receipt you've ever shared.
               </p>
             </div>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
