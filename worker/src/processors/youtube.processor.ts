@@ -1,22 +1,11 @@
-import { updateItem, createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
+import { createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
 import { extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
 import { YoutubeTranscript } from '../lib/youtubeTranscriptLoader.js';
+import { finalizeItem } from '../lib/finalize.js';
+import { extractVideoId } from '../lib/youtubeId.js';
 import { ProcessorError } from './url.processor.js';
 
-const ID_PATTERNS: RegExp[] = [
-  /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-  /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-  /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-  /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-];
-
-export function extractVideoId(url: string): string | null {
-  for (const re of ID_PATTERNS) {
-    const m = url.match(re);
-    if (m && m[1]) return m[1];
-  }
-  return null;
-}
+export { extractVideoId };
 
 interface OembedResponse {
   title?: string;
@@ -80,14 +69,13 @@ export async function processYoutube(item: ItemRecord): Promise<void> {
     throw err;
   }
 
-  await updateItem(item.id, {
+  await finalizeItem(item.id, {
     title: structured.title || fallbackTitle || `YouTube video ${videoId}`,
     summary: structured.summary,
     content: contentForClaude.slice(0, 20_000),
     tags: structured.tags,
     category: structured.category,
     source_url: url,
-    status: 'ready',
   });
 
   await createEmbedding(item.id, vector);
