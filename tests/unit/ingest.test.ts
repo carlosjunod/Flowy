@@ -201,6 +201,43 @@ describe('POST /api/ingest', () => {
     expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'instagram' }));
   });
 
+  it('type url + reddit comment URL → coerced to reddit and queued', async () => {
+    authOk('user_abc');
+    const res = await POST(
+      makeRequest(
+        { type: 'url', raw_url: 'https://www.reddit.com/r/programming/comments/abc/title/' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ type: 'reddit', user: 'user_abc' }));
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'reddit' }));
+  });
+
+  it('type url + reddit /s/ short share link → coerced to reddit', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'url', raw_url: 'https://www.reddit.com/r/sub/s/AbCdEf' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'reddit' }));
+  });
+
+  it('type url + redd.it short link → coerced to reddit', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'url', raw_url: 'https://redd.it/abc123' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'reddit' }));
+  });
+
   it('type instagram missing raw_url → 400 MISSING_URL', async () => {
     authOk();
     const res = await POST(makeRequest({ type: 'instagram' }, { authorization: 'Bearer t' }) as never);

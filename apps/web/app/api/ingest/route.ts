@@ -10,12 +10,13 @@ const VALID_TYPES = new Set([
   'youtube',
   'video',
   'instagram',
+  'reddit',
   'receipt',
   'pdf',
   'audio',
   'screen_recording',
 ]);
-const URL_TYPES = new Set(['url', 'youtube', 'video', 'instagram']);
+const URL_TYPES = new Set(['url', 'youtube', 'video', 'instagram', 'reddit']);
 const MAX_IMAGES = 10;
 
 const INSTAGRAM_POST_PATTERNS = [
@@ -25,6 +26,16 @@ const INSTAGRAM_POST_PATTERNS = [
 
 function isInstagramPostUrl(url: string): boolean {
   return INSTAGRAM_POST_PATTERNS.some((r) => r.test(url));
+}
+
+const REDDIT_POST_PATTERNS = [
+  /^https?:\/\/(?:www\.|old\.|new\.|np\.|i\.)?reddit\.com\/r\/[^/]+\/comments\//i,
+  /^https?:\/\/(?:www\.)?reddit\.com\/r\/[^/]+\/s\//i,
+  /^https?:\/\/(?:www\.)?redd\.it\//i,
+];
+
+function isRedditPostUrl(url: string): boolean {
+  return REDDIT_POST_PATTERNS.some((r) => r.test(url));
 }
 
 type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
@@ -118,9 +129,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // Auto-route Instagram post/carousel URLs to the instagram processor.
   // Reels stay on whatever type the client picked (usually `video`).
+  // Reddit comment/share URLs route to the reddit processor.
   const type =
     (incomingType === 'url' || incomingType === 'video') && raw_url && isInstagramPostUrl(raw_url)
       ? 'instagram'
+      : (incomingType === 'url' || incomingType === 'video') && raw_url && isRedditPostUrl(raw_url)
+      ? 'reddit'
       : incomingType;
 
   // Normalize images into an array. Accept `raw_images` (multi) or legacy `raw_image` (single).

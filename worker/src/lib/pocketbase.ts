@@ -11,6 +11,7 @@ export type ItemType =
   | 'audio'
   | 'video'
   | 'instagram'
+  | 'reddit'
   | 'screen_recording';
 
 export type MediaSlideKind = 'image' | 'video';
