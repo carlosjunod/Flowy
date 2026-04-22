@@ -103,6 +103,17 @@ async function createItem(userToken: string, userId: string, data: Record<string
   return { id: record.id };
 }
 
+/**
+ * Bearer token → share sheet / Chrome extension (mobile, iOS, macOS).
+ * Cookie → browser session (web).
+ * The future daily-digest can filter `source != 'bookmark_import'`;
+ * share vs. web split is bookkeeping for later segmentation.
+ */
+function inferSource(req: NextRequest): 'share' | 'web' {
+  const auth = req.headers.get('authorization');
+  return auth?.startsWith('Bearer ') ? 'share' : 'web';
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = await authenticate(req);
   if (!auth.ok) {
@@ -161,6 +172,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const itemData: Record<string, unknown> = {
       type,
       tags: [],
+      source: inferSource(req),
     };
     if (raw_url) itemData.raw_url = raw_url;
     if (source_url) itemData.source_url = source_url;

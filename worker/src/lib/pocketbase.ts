@@ -14,6 +14,8 @@ export type ItemType =
   | 'reddit'
   | 'screen_recording';
 
+export type ItemSource = 'share' | 'web' | 'bookmark_import';
+
 export type MediaSlideKind = 'image' | 'video';
 
 export interface MediaSlide {
@@ -44,6 +46,27 @@ export interface ItemRecord {
   site_name?: string;
   element?: string;
   media?: MediaSlide[];
+  source?: ItemSource;
+  import_batch?: string;
+  original_title?: string;
+  bookmarked_at?: string;
+  created: string;
+  updated: string;
+}
+
+export type ImportBatchStatus = 'running' | 'complete' | 'failed';
+
+export interface ImportBatchRecord {
+  id: string;
+  user: string;
+  label?: string;
+  status: ImportBatchStatus;
+  total: number;
+  completed_count: number;
+  dead_count: number;
+  failed_count: number;
+  started_at: string;
+  completed_at?: string;
   created: string;
   updated: string;
 }
@@ -127,6 +150,60 @@ export async function getItem(id: string): Promise<ItemRecord> {
 export async function updateItem(id: string, patch: Partial<ItemRecord>): Promise<ItemRecord> {
   await ensureAuth();
   return pb.collection('items').update<ItemRecord>(id, patch);
+}
+
+export async function deleteItem(id: string): Promise<void> {
+  await ensureAuth();
+  await pb.collection('items').delete(id);
+}
+
+export async function getImportBatch(id: string): Promise<ImportBatchRecord> {
+  await ensureAuth();
+  return pb.collection('import_batches').getOne<ImportBatchRecord>(id);
+}
+
+export async function updateImportBatch(
+  id: string,
+  patch: Partial<ImportBatchRecord>,
+): Promise<ImportBatchRecord> {
+  await ensureAuth();
+  return pb.collection('import_batches').update<ImportBatchRecord>(id, patch);
+}
+
+/**
+ * Atomically bump one of the counters on an import_batches row and, when the
+ * total is reached, flip status=complete + stamp completed_at.
+ * PocketBase has no native atomic increment, so we read–modify–write with a
+ * single retry on conflict; worst case is a double-count we can live with
+ * (cosmetic summary only).
+ */
+export async function incrementImportBatchCounter(
+  id: string,
+  field: 'completed_count' | 'dead_count' | 'failed_count',
+): Promise<void> {
+  await ensureAuth();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const current = await pb.collection('import_batches').getOne<ImportBatchRecord>(id);
+      const nextVal = (current[field] ?? 0) + 1;
+      const patch: Partial<ImportBatchRecord> = { [field]: nextVal } as Partial<ImportBatchRecord>;
+      const processed =
+        (field === 'completed_count' ? nextVal : current.completed_count) +
+        (field === 'dead_count'      ? nextVal : current.dead_count) +
+        (field === 'failed_count'    ? nextVal : current.failed_count);
+      if (processed >= current.total && current.status === 'running') {
+        patch.status = 'complete';
+        patch.completed_at = new Date().toISOString();
+      }
+      await pb.collection('import_batches').update(id, patch);
+      return;
+    } catch (err) {
+      if (attempt === 1) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[pb] failed to bump ${field} on batch ${id}: ${msg}`);
+      }
+    }
+  }
 }
 
 export async function createEmbedding(itemId: string, vector: number[]): Promise<EmbeddingRecord> {

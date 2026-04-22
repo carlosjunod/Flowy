@@ -51,12 +51,20 @@ export async function processUrl(item: ItemRecord): Promise<void> {
 
   const finalTitle = structured.title || scraped.title || url;
 
+  // Merge Claude-derived tags with any folder:* / source:* tags set at
+  // creation time so bookmark-import metadata survives the scrape.
+  const existing = Array.isArray(item.tags) ? item.tags : [];
+  const preserved = existing.filter(
+    (t) => typeof t === 'string' && (t.startsWith('folder:') || t.startsWith('source:')),
+  );
+  const merged = Array.from(new Set([...preserved, ...structured.tags])).slice(0, 10);
+
   const description = scraped.description?.slice(0, 500) ?? '';
   await finalizeItem(item.id, {
     title: finalTitle,
     summary: structured.summary,
     content: plainContent.slice(0, 20_000),
-    tags: structured.tags,
+    tags: merged,
     category: structured.category,
     source_url: scraped.url ?? url,
     og_image: scraped.image ?? '',

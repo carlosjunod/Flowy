@@ -8,7 +8,10 @@ export type ItemType =
   | 'audio'
   | 'video'
   | 'instagram'
+  | 'reddit'
   | 'screen_recording';
+
+export type ItemSource = 'share' | 'web' | 'bookmark_import';
 
 export type MediaSlideKind = 'image' | 'video';
 
@@ -39,6 +42,27 @@ export interface Item {
   og_image?: string;
   og_description?: string;
   site_name?: string;
+  source?: ItemSource;
+  import_batch?: string;
+  original_title?: string;
+  bookmarked_at?: string;
+  created: string;
+  updated: string;
+}
+
+export type ImportBatchStatus = 'running' | 'complete' | 'failed';
+
+export interface ImportBatch {
+  id: string;
+  user: string;
+  label?: string;
+  status: ImportBatchStatus;
+  total: number;
+  completed_count: number;
+  dead_count: number;
+  failed_count: number;
+  started_at: string;
+  completed_at?: string;
   created: string;
   updated: string;
 }

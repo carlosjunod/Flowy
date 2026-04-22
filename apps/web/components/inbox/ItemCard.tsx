@@ -55,6 +55,40 @@ function relativeDate(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/** Coarse "bookmarked Ny ago" age — only shown for imported bookmarks. */
+function bookmarkAge(iso?: string): string | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return null;
+  const days = Math.max(0, Math.floor((Date.now() - then) / 86_400_000));
+  if (days < 30) return `${days}d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+  const years = Math.floor(days / 365);
+  return `${years}y`;
+}
+
+/** Loose similarity: both titles collapsed to alphanumerics; Jaccard-ish. */
+function titlesDiverge(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false;
+  const toks = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((t) => t.length >= 3),
+    );
+  const ta = toks(a);
+  const tb = toks(b);
+  if (ta.size === 0 || tb.size === 0) return false;
+  let overlap = 0;
+  for (const t of ta) if (tb.has(t)) overlap += 1;
+  const union = ta.size + tb.size - overlap;
+  if (union === 0) return false;
+  return overlap / union < 0.35;
+}
+
 export function thumbnailUrl(item: Item): string | null {
   const r2Public = process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? '';
   if (item.r2_key && r2Public) return `${r2Public.replace(/\/$/, '')}/${item.r2_key}`;
@@ -248,11 +282,36 @@ export function ItemCard({ item }: Props) {
         <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${categoryClass}`}>
           {item.category ?? 'uncategorized'}
         </span>
-        <span className="text-[11px] text-muted">{relativeDate(item.created)}</span>
+        <span className="flex items-center gap-1.5 text-[11px] text-muted">
+          {(() => {
+            const age = bookmarkAge(item.bookmarked_at);
+            return item.source === 'bookmark_import' && age ? (
+              <span
+                data-testid="item-card-bookmark-age"
+                title={`Bookmarked ${age} ago`}
+                className="rounded-sm bg-foreground/5 px-1 text-[10px] tabular-nums"
+              >
+                · {age} ago
+              </span>
+            ) : null;
+          })()}
+          <span>{relativeDate(item.created)}</span>
+        </span>
       </div>
       <p className="line-clamp-2 text-sm font-medium text-foreground">
         {item.title ?? '(untitled)'}
       </p>
+      {item.source === 'bookmark_import' &&
+      item.original_title &&
+      titlesDiverge(item.original_title, item.title) ? (
+        <span
+          data-testid="item-card-original-title"
+          title="Original bookmark title — content may have changed since you saved it"
+          className="line-clamp-1 text-[11px] italic text-muted"
+        >
+          was: {item.original_title}
+        </span>
+      ) : null}
       {domain ? <span className="truncate text-xs text-muted">{domain}</span> : null}
       <HoverActions item={item} onDelete={confirmDelete} busy={busy} />
     </div>

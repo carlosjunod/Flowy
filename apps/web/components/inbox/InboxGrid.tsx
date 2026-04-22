@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import type { Item } from '@/types';
 import { getPb } from '@/lib/pocketbase';
+import { deleteItem as deleteItemAction } from '@/lib/items-actions';
 import { ItemCard } from './ItemCard';
 import { ItemRow } from './ItemRow';
 import { ItemDetailRow } from './ItemDetailRow';
 import { FilterBar, type SortMode, type SortDirection, type ViewMode } from './FilterBar';
 import { useItemDrawer } from './ItemDrawerProvider';
-import { InboxIcon, SearchIcon } from '@/components/ui/icons';
+import { InboxIcon, SearchIcon, TrashIcon } from '@/components/ui/icons';
 import { Spinner } from '@/components/ui/Spinner';
+import { Button } from '@/components/ui/Button';
 
 const PAGE_SIZE = 20;
 const VIEW_KEY = 'flowy:view-mode';
@@ -34,15 +36,19 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
   const [filter, setFilter] = useState<string | null>(filterProp);
+  const [importedOnly, setImportedOnly] = useState(false);
   const [sort, setSort] = useState<SortMode>(sortProp);
   const [direction, setDirection] = useState<SortDirection>('desc');
   const [view, setView] = useState<ViewMode>('grid');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     setView(readPref<ViewMode>(VIEW_KEY, 'grid', ['grid', 'list', 'detail']));
-    setSort(readPref<SortMode>(SORT_KEY, sortProp, ['date', 'category', 'type']));
+    setSort(readPref<SortMode>(SORT_KEY, sortProp, ['date', 'category', 'type', 'bookmarked_at']));
     setDirection(readPref<SortDirection>(DIR_KEY, 'desc', ['asc', 'desc']));
   }, [sortProp]);
 
@@ -66,6 +72,10 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
     switch (sort) {
       case 'category': return `${prefix}category,-created`;
       case 'type': return `${prefix}type,-created`;
+      case 'bookmarked_at':
+        // Oldest bookmarks first pushes the decade-old cruft to the top for
+        // triage, so ascending is the useful default regardless of user dir.
+        return `${direction === 'asc' ? '+' : '-'}bookmarked_at,-created`;
       default: return `${prefix}created`;
     }
   }, [sort, direction]);
@@ -79,8 +89,11 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         setHasMore(false);
         return;
       }
+      const parts = [`user = "${pb.authStore.model?.id}"`];
+      if (importedOnly) parts.push(`source = "bookmark_import"`);
+      const filterExpr = parts.join(' && ');
       const result = await pb.collection('items').getList<Item>(nextPage, PAGE_SIZE, {
-        filter: `user = "${pb.authStore.model?.id}"`,
+        filter: filterExpr,
         sort: sortExpr,
       });
       setHasMore(result.page * result.perPage < result.totalItems);
@@ -91,7 +104,7 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
     } finally {
       setLoading(false);
     }
-  }, [sortExpr]);
+  }, [sortExpr, importedOnly]);
 
   useEffect(() => {
     setPage(1);
@@ -102,6 +115,12 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
     const unsubscribe = drawer.subscribe((m) => {
       if (m.kind === 'deleted') {
         setItems((prev) => prev.filter((i) => i.id !== m.id));
+        setSelectedIds((prev) => {
+          if (!prev.has(m.id)) return prev;
+          const next = new Set(prev);
+          next.delete(m.id);
+          return next;
+        });
       } else if (m.kind === 'updated' || m.kind === 'retried') {
         setItems((prev) => prev.map((i) => (i.id === m.item.id ? { ...i, ...m.item } : i)));
       } else if (m.kind === 'created') {
@@ -130,6 +149,48 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
     return out;
   }, [items, filter, debouncedQuery]);
 
+  const hasImportedItems = useMemo(
+    () => items.some((i) => i.source === 'bookmark_import'),
+    [items],
+  );
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(filtered.map((i) => i.id)));
+  }, [filtered]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelecting(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const confirmBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (typeof window !== 'undefined' && !window.confirm(`Delete ${ids.length} item${ids.length === 1 ? '' : 's'}?`)) return;
+    setBulkBusy(true);
+    const results = await Promise.all(ids.map((id) => deleteItemAction(id)));
+    const deletedIds = ids.filter((_, i) => results[i]?.ok);
+    if (deletedIds.length > 0) {
+      setItems((prev) => prev.filter((i) => !deletedIds.includes(i.id)));
+      for (const id of deletedIds) drawer.emit({ kind: 'deleted', id });
+    }
+    setBulkBusy(false);
+    exitSelectMode();
+  }, [selectedIds, drawer, exitSelectMode]);
+
   const readyForEmpty = !loading && items.length === 0;
   const filteredEmpty = !loading && items.length > 0 && filtered.length === 0;
 
@@ -147,7 +208,65 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         onView={setView}
         query={query}
         onQuery={setQuery}
+        importedOnly={importedOnly}
+        onImportedOnly={setImportedOnly}
+        hasImportedItems={hasImportedItems}
       />
+
+      {items.length > 0 ? (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          {selecting ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted" data-testid="selection-count">
+                  {selectedIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={selectAllVisible}
+                  className="rounded-md px-2 py-1 text-xs text-foreground/80 hover:bg-foreground/5"
+                >
+                  Select all visible
+                </button>
+                {selectedIds.size > 0 ? (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="rounded-md px-2 py-1 text-xs text-muted hover:bg-foreground/5 hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={exitSelectMode} disabled={bulkBusy}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => void confirmBulkDelete()}
+                  disabled={selectedIds.size === 0 || bulkBusy}
+                  data-testid="bulk-delete"
+                >
+                  {bulkBusy ? <Spinner size={12} /> : <TrashIcon size={12} />}
+                  Delete {selectedIds.size || ''}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSelecting(true)}
+              className="rounded-md px-2 py-1 text-xs text-muted hover:bg-foreground/5 hover:text-foreground"
+              data-testid="enter-select-mode"
+            >
+              Select items
+            </button>
+          )}
+        </div>
+      ) : null}
+
       {readyForEmpty ? (
         <EmptyState
           icon={<InboxIcon size={36} strokeWidth={1.5} className="text-accent" />}
@@ -163,11 +282,31 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         />
       ) : view === 'list' ? (
         <div data-testid="inbox-list" className="flex flex-col gap-2 stagger-child">
-          {filtered.map((item) => <ItemRow key={item.id} item={item} />)}
+          {filtered.map((item) => (
+            <SelectableWrap
+              key={item.id}
+              item={item}
+              selecting={selecting}
+              selected={selectedIds.has(item.id)}
+              onToggle={toggleSelected}
+            >
+              <ItemRow item={item} />
+            </SelectableWrap>
+          ))}
         </div>
       ) : view === 'detail' ? (
         <div data-testid="inbox-detail" className="flex flex-col gap-3 stagger-child">
-          {filtered.map((item) => <ItemDetailRow key={item.id} item={item} />)}
+          {filtered.map((item) => (
+            <SelectableWrap
+              key={item.id}
+              item={item}
+              selecting={selecting}
+              selected={selectedIds.has(item.id)}
+              onToggle={toggleSelected}
+            >
+              <ItemDetailRow item={item} />
+            </SelectableWrap>
+          ))}
         </div>
       ) : (
         <div
@@ -175,7 +314,15 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
           className="grid grid-cols-1 gap-4 stagger-child sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
         >
           {filtered.map((item) => (
-            <ItemCard key={item.id} item={item} />
+            <SelectableWrap
+              key={item.id}
+              item={item}
+              selecting={selecting}
+              selected={selectedIds.has(item.id)}
+              onToggle={toggleSelected}
+            >
+              <ItemCard item={item} />
+            </SelectableWrap>
           ))}
         </div>
       )}
@@ -197,6 +344,59 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         </div>
       ) : null}
     </section>
+  );
+}
+
+function SelectableWrap({
+  item,
+  selecting,
+  selected,
+  onToggle,
+  children,
+}: {
+  item: Item;
+  selecting: boolean;
+  selected: boolean;
+  onToggle: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  if (!selecting) return <>{children}</>;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(item.id);
+        }}
+        className="absolute inset-0 z-10 rounded-2xl ring-offset-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        data-testid="select-item"
+        data-selected={selected ? 'true' : 'false'}
+      >
+        <span className="sr-only">{selected ? 'Deselect' : 'Select'} item</span>
+      </button>
+      <div
+        className={[
+          'relative transition-all',
+          selected ? 'ring-2 ring-accent rounded-2xl' : '',
+        ].join(' ')}
+      >
+        {children}
+      </div>
+      <span
+        aria-hidden
+        className={[
+          'absolute left-2 top-2 z-20 flex h-5 w-5 items-center justify-center rounded border',
+          selected
+            ? 'border-accent bg-accent text-background'
+            : 'border-border bg-background/85 text-transparent',
+        ].join(' ')}
+      >
+        ✓
+      </span>
+    </div>
   );
 }
 

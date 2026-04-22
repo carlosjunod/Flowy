@@ -4,7 +4,7 @@ import type { Item } from '@/types';
 import type { ReactNode } from 'react';
 import { SearchIcon, XIcon, GridIcon, ListIcon, RowsIcon, ArrowUpIcon, ArrowDownIcon } from '@/components/ui/icons';
 
-export type SortMode = 'date' | 'category' | 'type';
+export type SortMode = 'date' | 'category' | 'type' | 'bookmarked_at';
 export type SortDirection = 'asc' | 'desc';
 export type ViewMode = 'grid' | 'list' | 'detail';
 
@@ -20,6 +20,9 @@ interface Props {
   onView: (view: ViewMode) => void;
   query: string;
   onQuery: (q: string) => void;
+  importedOnly: boolean;
+  onImportedOnly: (v: boolean) => void;
+  hasImportedItems: boolean;
 }
 
 export function FilterBar({
@@ -34,6 +37,9 @@ export function FilterBar({
   onView,
   query,
   onQuery,
+  importedOnly,
+  onImportedOnly,
+  hasImportedItems,
 }: Props) {
   const categories = Array.from(
     new Set(items.map((i) => i.category).filter((c): c is string => Boolean(c))),
@@ -82,6 +88,9 @@ export function FilterBar({
               <option value="date">Date</option>
               <option value="category">Category</option>
               <option value="type">Type</option>
+              {hasImportedItems ? (
+                <option value="bookmarked_at">Oldest bookmarks</option>
+              ) : null}
             </select>
           </label>
 
@@ -120,6 +129,15 @@ export function FilterBar({
             {cat}
           </FilterPill>
         ))}
+        {hasImportedItems ? (
+          <FilterPill
+            active={importedOnly}
+            onClick={() => onImportedOnly(!importedOnly)}
+            testId="filter-imported"
+          >
+            Imported
+          </FilterPill>
+        ) : null}
       </div>
     </div>
   );

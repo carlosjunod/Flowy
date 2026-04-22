@@ -8,8 +8,14 @@ vi.mock('../../worker/src/lib/pocketbase.js', () => ({
   getItem: (...args: unknown[]) => getItemMock(...args),
   updateItem: (...args: unknown[]) => updateItemMock(...args),
   createEmbedding: (...args: unknown[]) => createEmbeddingMock(...args),
+  deleteItem: async () => undefined,
+  incrementImportBatchCounter: async () => undefined,
   pb: {},
   ensureAuth: async () => undefined,
+}));
+
+vi.mock('../../worker/src/lib/linkProbe.js', () => ({
+  probeUrl: async () => ({ ok: true, status: 200 }),
 }));
 
 const processUrlMock = vi.fn();
@@ -28,6 +34,10 @@ vi.mock('../../worker/src/processors/youtube.processor.js', () => ({
 
 vi.mock('../../worker/src/queues.js', () => ({
   createIngestWorker: () => ({
+    on: () => undefined,
+    close: async () => undefined,
+  }),
+  createBulkIngestWorker: () => ({
     on: () => undefined,
     close: async () => undefined,
   }),
