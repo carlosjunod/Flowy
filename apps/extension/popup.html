@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Save to Flowy</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="hdr">
+      <div class="brand">
+        <img src="icons/icon-32.png" alt="" width="20" height="20" />
+        <span>Flowy</span>
+      </div>
+      <button id="open-options" class="icon-btn" title="Settings" aria-label="Open settings">
+        &#9881;
+      </button>
+    </header>
+
+    <section id="signed-out" class="panel" hidden>
+      <p class="muted">Sign in to save pages to your Flowy inbox.</p>
+      <button id="go-signin" class="btn btn-primary">Sign in</button>
+    </section>
+
+    <section id="signed-in" class="panel" hidden>
+      <div id="page-meta">
+        <div id="page-title" class="title">Loading…</div>
+        <div id="page-url" class="url"></div>
+        <div id="detected-type" class="type-chip"></div>
+      </div>
+
+      <button id="save-btn" class="btn btn-primary" disabled>
+        <span id="save-label">Save to Flowy</span>
+      </button>
+      <div id="save-status" class="status" role="status" aria-live="polite"></div>
+
+      <div class="recent">
+        <div class="recent-head">Recent</div>
+        <ul id="recent-list" class="recent-list"></ul>
+      </div>
+
+      <footer class="foot">
+        <span id="who" class="muted"></span>
+        <button id="sign-out" class="link">Sign out</button>
+      </footer>
+    </section>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
