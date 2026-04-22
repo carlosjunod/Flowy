@@ -6,6 +6,9 @@ export interface IngestJobData {
   type: string;
   raw_url?: string;
   raw_image?: string;
+  raw_images?: string[];
+  raw_video?: string;
+  video_mime?: string;
 }
 
 let _queue: Queue<IngestJobData> | null = null;

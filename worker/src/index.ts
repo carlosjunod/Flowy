@@ -3,13 +3,15 @@ import { createIngestWorker, type IngestJobData, type IngestJobResult } from './
 import { getItem, updateItem } from './lib/pocketbase.js';
 import { processUrl } from './processors/url.processor.js';
 import { processImage } from './processors/image.processor.js';
+import { processScreenshots } from './processors/screenshots.processor.js';
+import { processScreenRecording } from './processors/screen_recording.processor.js';
 import { processYoutube } from './processors/youtube.processor.js';
 import { processVideo } from './processors/video.js';
 import { processInstagram } from './processors/instagram.processor.js';
 import type { Job } from 'bullmq';
 
 async function handleJob(job: Job<IngestJobData, IngestJobResult>): Promise<IngestJobResult> {
-  const { itemId, type, raw_image } = job.data;
+  const { itemId, type, raw_image, raw_images, raw_video, video_mime } = job.data;
 
   try {
     const item = await getItem(itemId);
@@ -20,9 +22,23 @@ async function handleJob(job: Job<IngestJobData, IngestJobResult>): Promise<Inge
       case 'url':
         await processUrl(item);
         break;
-      case 'screenshot':
-        if (!raw_image) throw new Error('MISSING_IMAGE');
-        await processImage(item, raw_image);
+      case 'screenshot': {
+        const imgs = Array.isArray(raw_images) && raw_images.length > 0
+          ? raw_images
+          : raw_image
+            ? [raw_image]
+            : [];
+        if (imgs.length === 0) throw new Error('MISSING_IMAGE');
+        if (imgs.length === 1) {
+          await processImage(item, imgs[0]!);
+        } else {
+          await processScreenshots(item, imgs);
+        }
+        break;
+      }
+      case 'screen_recording':
+        if (!raw_video) throw new Error('MISSING_VIDEO');
+        await processScreenRecording(item, raw_video, video_mime);
         break;
       case 'youtube':
         await processYoutube(item);

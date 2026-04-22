@@ -31,6 +31,8 @@
         <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
         <integer>1</integer>
         <key>NSExtensionActivationSupportsImageWithMaxCount</key>
+        <integer>10</integer>
+        <key>NSExtensionActivationSupportsMovieWithMaxCount</key>
         <integer>1</integer>
         <key>NSExtensionActivationSupportsText</key>
         <true/>
