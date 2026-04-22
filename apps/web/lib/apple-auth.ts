@@ -35,8 +35,15 @@ export function __setJwksFactoryForTest(factory: JwksFactory | null): void {
   if (factory === null) cachedJwks = null;
 }
 
-function getAudience(): string {
-  return process.env.APPLE_CLIENT_ID ?? 'app.tryflowy.app';
+function getAudience(): string | string[] {
+  const native = process.env.APPLE_CLIENT_ID ?? 'app.tryflowy.app';
+  const web = process.env.APPLE_WEB_CLIENT_ID ?? '';
+  // Apple issues `aud` = the bundle ID for native Sign in with Apple
+  // (iOS/macOS) and = the Services ID for web Sign in with Apple. Accept
+  // either when a Services ID is configured; otherwise keep the original
+  // single-audience check to avoid broadening the surface unnecessarily.
+  if (web && web !== native) return [native, web];
+  return native;
 }
 
 export async function verifyAppleIdentityToken(token: string): Promise<AppleIdentity> {

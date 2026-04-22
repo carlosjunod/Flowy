@@ -132,4 +132,38 @@ describe('verifyAppleIdentityToken', () => {
   it('non-string token → throws INVALID_APPLE_TOKEN', async () => {
     await expect(verifyAppleIdentityToken(undefined as unknown as string)).rejects.toThrow(AppleAuthError);
   });
+
+  describe('APPLE_WEB_CLIENT_ID (web Sign in with Apple)', () => {
+    const WEB_AUD = 'app.tryflowy.app.services';
+
+    afterEach(() => {
+      delete process.env.APPLE_WEB_CLIENT_ID;
+    });
+
+    it('web aud is accepted when APPLE_WEB_CLIENT_ID is set', async () => {
+      process.env.APPLE_WEB_CLIENT_ID = WEB_AUD;
+      const token = await sign({ privateKey, kid, sub: 'u-web', aud: WEB_AUD });
+      const result = await verifyAppleIdentityToken(token);
+      expect(result.sub).toBe('u-web');
+    });
+
+    it('native aud still accepted when APPLE_WEB_CLIENT_ID is set', async () => {
+      process.env.APPLE_WEB_CLIENT_ID = WEB_AUD;
+      const token = await sign({ privateKey, kid, sub: 'u-native', aud: AUD });
+      const result = await verifyAppleIdentityToken(token);
+      expect(result.sub).toBe('u-native');
+    });
+
+    it('unrelated aud still rejected when APPLE_WEB_CLIENT_ID is set', async () => {
+      process.env.APPLE_WEB_CLIENT_ID = WEB_AUD;
+      const token = await sign({ privateKey, kid, sub: 'u-bad', aud: 'some.other.app' });
+      await expect(verifyAppleIdentityToken(token)).rejects.toThrow(AppleAuthError);
+    });
+
+    it('web aud rejected when APPLE_WEB_CLIENT_ID is NOT set', async () => {
+      // Sanity: no web client id configured → only native aud is acceptable.
+      const token = await sign({ privateKey, kid, sub: 'u-web-disabled', aud: WEB_AUD });
+      await expect(verifyAppleIdentityToken(token)).rejects.toThrow(AppleAuthError);
+    });
+  });
 });
