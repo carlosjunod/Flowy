@@ -10,7 +10,7 @@ interface Props {
 }
 
 const TYPE_GLYPH: Record<string, string> = {
-  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
+  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬', screen_recording: '🎥',
 };
 
 function domainFromUrl(url?: string | null): string | null {
@@ -68,6 +68,10 @@ function relativeDate(iso: string): string {
 export function thumbnailUrl(item: Item): string | null {
   const r2Public = process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? '';
   if (item.r2_key && r2Public) return `${r2Public.replace(/\/$/, '')}/${item.r2_key}`;
+  if (r2Public && Array.isArray(item.media) && item.media.length > 0) {
+    const first = item.media[0];
+    if (first?.r2_key) return `${r2Public.replace(/\/$/, '')}/${first.r2_key}`;
+  }
   if (item.type === 'youtube') {
     const id = youtubeIdFromUrl(item.source_url ?? item.raw_url);
     if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
@@ -78,6 +82,10 @@ export function thumbnailUrl(item: Item): string | null {
     if (host) return `https://www.google.com/s2/favicons?sz=64&domain=${host}`;
   }
   return null;
+}
+
+function mediaCount(item: Item): number {
+  return Array.isArray(item.media) ? item.media.length : 0;
 }
 
 interface HoverActionsProps {
@@ -225,6 +233,15 @@ export function ItemCard({ item }: Props) {
         <span className="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-xs" aria-hidden>
           {TYPE_GLYPH[item.type] ?? '📎'}
         </span>
+        {mediaCount(item) > 1 ? (
+          <span
+            data-testid="item-card-count"
+            className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white/90"
+            aria-label={`${mediaCount(item)} items`}
+          >
+            ▦ {mediaCount(item)}
+          </span>
+        ) : null}
       </div>
       <div className="flex items-center justify-between gap-2">
         <span className={`rounded px-2 py-0.5 text-[11px] uppercase tracking-wide ${categoryClass}`}>

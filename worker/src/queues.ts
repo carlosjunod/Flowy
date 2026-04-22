@@ -8,6 +8,9 @@ export interface IngestJobData {
   type: ItemType;
   raw_url?: string;
   raw_image?: string;
+  raw_images?: string[];
+  raw_video?: string;
+  video_mime?: string;
 }
 
 export interface IngestJobResult {

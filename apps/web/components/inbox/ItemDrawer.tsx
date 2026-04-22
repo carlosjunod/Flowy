@@ -6,7 +6,7 @@ import { getPb, updateItem, deleteItem, type ItemPatch } from '@/lib/pocketbase'
 import { shareItem } from '@/lib/share';
 
 const TYPE_GLYPH: Record<string, string> = {
-  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬',
+  url: '🔗', screenshot: '🖼️', youtube: '▶', receipt: '🧾', pdf: '📄', audio: '🎧', video: '🎬', screen_recording: '🎥',
 };
 
 const CONTENT_LABEL: Record<string, string> = {
@@ -17,6 +17,7 @@ const CONTENT_LABEL: Record<string, string> = {
   receipt: 'Receipt text',
   pdf: 'Extracted text',
   audio: 'Transcript',
+  screen_recording: 'Transcript',
 };
 
 interface Props {
@@ -46,6 +47,12 @@ function r2Url(item: Item): string | null {
   const pub = process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? '';
   if (!item.r2_key || !pub) return null;
   return `${pub.replace(/\/$/, '')}/${item.r2_key}`;
+}
+
+function r2UrlForKey(key?: string): string | null {
+  const pub = process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? '';
+  if (!key || !pub) return null;
+  return `${pub.replace(/\/$/, '')}/${key}`;
 }
 
 function formatDate(iso: string): string {
@@ -366,7 +373,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Hero({ item, zoomed, onToggleZoom }: { item: Item; zoomed: boolean; onToggleZoom: () => void }) {
+  const hasMultiMedia = Array.isArray(item.media) && item.media.length > 1;
   const imageTypes = new Set(['screenshot', 'receipt', 'pdf']);
+
+  if (hasMultiMedia) {
+    return <MediaCarousel item={item} zoomed={zoomed} onToggleZoom={onToggleZoom} />;
+  }
+
+  if (item.type === 'screen_recording') {
+    const mediaKey = item.media?.[0]?.r2_key;
+    const videoUrl = r2UrlForKey(mediaKey) ?? r2Url(item);
+    if (videoUrl) {
+      return (
+        <video
+          controls
+          src={videoUrl}
+          poster={r2Url(item) ?? undefined}
+          className="w-full max-h-96 rounded-lg border border-white/10 bg-black"
+        />
+      );
+    }
+  }
+
   if (imageTypes.has(item.type)) {
     const url = r2Url(item);
     if (!url) return <HeroFallback item={item} />;
@@ -410,6 +438,102 @@ function Hero({ item, zoomed, onToggleZoom }: { item: Item; zoomed: boolean; onT
     }
   }
   return <HeroFallback item={item} />;
+}
+
+function MediaCarousel({ item, zoomed, onToggleZoom }: { item: Item; zoomed: boolean; onToggleZoom: () => void }) {
+  const slides = (item.media ?? []).slice().sort((a, b) => a.index - b.index);
+  const [active, setActive] = useState(0);
+  const activeSlide = slides[active] ?? slides[0];
+  if (!activeSlide) return <HeroFallback item={item} />;
+  const activeUrl = r2UrlForKey(activeSlide.r2_key);
+  const count = slides.length;
+
+  const go = (delta: number) => {
+    setActive((i) => (i + delta + count) % count);
+  };
+
+  return (
+    <div className="flex flex-col gap-2" data-testid="item-carousel">
+      <div className={`relative w-full overflow-hidden rounded-lg border border-white/10 bg-black ${zoomed ? '' : 'max-h-96'}`}>
+        {activeUrl ? (
+          activeSlide.kind === 'video' ? (
+            <video
+              key={activeSlide.r2_key}
+              controls
+              src={activeUrl}
+              className="w-full max-h-96 bg-black"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={onToggleZoom}
+              className="block w-full"
+              aria-label={`Image ${active + 1} of ${count}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeUrl}
+                alt={activeSlide.summary ?? `Image ${active + 1}`}
+                className={`w-full ${zoomed ? '' : 'max-h-96 object-contain'}`}
+              />
+            </button>
+          )
+        ) : (
+          <HeroFallback item={item} />
+        )}
+
+        <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] text-white/80">
+          {active + 1} / {count}
+        </span>
+
+        <button
+          type="button"
+          aria-label="Previous image"
+          onClick={() => go(-1)}
+          className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-2 py-1 text-white/80 hover:bg-black/80"
+        >‹</button>
+        <button
+          type="button"
+          aria-label="Next image"
+          onClick={() => go(1)}
+          className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-2 py-1 text-white/80 hover:bg-black/80"
+        >›</button>
+      </div>
+
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {slides.map((s, i) => {
+          const thumbUrl = r2UrlForKey(s.r2_key);
+          return (
+            <button
+              type="button"
+              key={s.r2_key}
+              onClick={() => setActive(i)}
+              aria-label={`Show image ${i + 1}`}
+              aria-current={i === active}
+              className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded border ${
+                i === active ? 'border-white/70' : 'border-white/15 hover:border-white/40'
+              }`}
+            >
+              {thumbUrl ? (
+                s.kind === 'video' ? (
+                  <div className="flex h-full w-full items-center justify-center bg-black text-lg">🎬</div>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
+                )
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-white/5 text-xs text-white/40">{i + 1}</div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeSlide.summary ? (
+        <p className="text-xs text-white/60">{activeSlide.summary}</p>
+      ) : null}
+    </div>
+  );
 }
 
 function HeroFallback({ item }: { item: Item }) {
