@@ -31,6 +31,15 @@ vi.mock('../../worker/src/queues.js', () => ({
     on: () => undefined,
     close: async () => undefined,
   }),
+  createRedisConnection: () => ({ on: () => undefined, close: async () => undefined }),
+}));
+
+vi.mock('../../worker/src/jobs/dailyDigest.js', () => ({
+  createDigestWorkers: () => ({
+    scheduleWorker: { on: () => undefined, close: async () => undefined },
+    generateWorker: { on: () => undefined, close: async () => undefined },
+  }),
+  ensureDigestCronRegistered: async () => undefined,
 }));
 
 const { handleJob } = await import('../../worker/src/index.js');

@@ -9,6 +9,7 @@ import { processYoutube } from './processors/youtube.processor.js';
 import { processVideo } from './processors/video.js';
 import { processInstagram } from './processors/instagram.processor.js';
 import { processReddit } from './processors/reddit.processor.js';
+import { createDigestWorkers, ensureDigestCronRegistered } from './jobs/dailyDigest.js';
 import type { Job } from 'bullmq';
 
 async function handleJob(job: Job<IngestJobData, IngestJobResult>): Promise<IngestJobResult> {
@@ -80,8 +81,25 @@ worker.on('ready', () => console.log('[worker] ready, waiting for jobs...'));
 worker.on('error', (err) => console.error('[worker] error:', err.message));
 worker.on('failed', (job, err) => console.error(`[worker] job ${job?.id} failed: ${err.message}`));
 
+const { scheduleWorker, generateWorker } = createDigestWorkers();
+scheduleWorker.on('error', (err) => console.error('[digest-schedule] error:', err.message));
+scheduleWorker.on('failed', (job, err) =>
+  console.error(`[digest-schedule] job ${job?.id} failed: ${err.message}`),
+);
+generateWorker.on('error', (err) => console.error('[digest-generate] error:', err.message));
+generateWorker.on('failed', (job, err) =>
+  console.error(`[digest-generate] job ${job?.id} failed: ${err.message}`),
+);
+
+void ensureDigestCronRegistered()
+  .then(() => console.log('[digest-schedule] cron registered (* * * * *)'))
+  .catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[digest-schedule] failed to register cron:', msg);
+  });
+
 process.on('SIGINT', async () => {
   console.log('[worker] shutting down...');
-  await worker.close();
+  await Promise.allSettled([worker.close(), scheduleWorker.close(), generateWorker.close()]);
   process.exit(0);
 });
