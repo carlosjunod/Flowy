@@ -3,6 +3,7 @@ import { LogoutButton } from '@/components/ui/LogoutButton';
 import { ItemDrawerProvider } from '@/components/inbox/ItemDrawerProvider';
 import { Brand } from '@/components/ui/Brand';
 import { NavLink } from '@/components/ui/NavLink';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <NavLink href="/chat">Chat</NavLink>
               <NavLink href="/inbox">Inbox</NavLink>
               <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+              <ThemeToggle />
               <LogoutButton />
             </nav>
           </div>

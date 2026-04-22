@@ -82,7 +82,7 @@ function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
     e.stopPropagation();
   };
   const base =
-    'rounded-full border border-border bg-surface-elevated/90 p-1.5 text-foreground/70 backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:opacity-40 active:scale-95';
+    'rounded-full border border-border bg-surface-elevated/90 p-1.5 text-foreground/70 backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:opacity-40 active:scale-95 dark:bg-surface-elevated/80';
   return (
     <div
       data-testid="item-card-actions"
@@ -110,7 +110,7 @@ function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
         disabled={busy}
         onClick={(e) => { stopAll(e); onDelete(); }}
         onKeyDown={stopAll}
-        className={`${base} hover:border-red-400 hover:text-red-700`}
+        className={`${base} hover:border-red-400 hover:text-red-700 dark:hover:border-red-700 dark:hover:text-red-300`}
       >
         <TrashIcon size={14} />
         <span className="sr-only">Delete {item.title ?? 'item'}</span>
@@ -178,12 +178,12 @@ export function ItemCard({ item }: Props) {
       <article
         data-testid="item-card-error"
         title={item.error_msg ?? 'Processing error'}
-        className="group relative flex h-48 flex-col gap-2 rounded-2xl border border-red-300 bg-red-50 p-3"
+        className="group relative flex h-48 flex-col gap-2 rounded-2xl border border-red-300 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40"
       >
         <div className="flex h-28 items-center justify-center">
-          <AlertTriangleIcon size={32} strokeWidth={1.5} className="text-red-500" />
+          <AlertTriangleIcon size={32} strokeWidth={1.5} className="text-red-500 dark:text-red-400" />
         </div>
-        <span className="line-clamp-3 text-xs text-red-700">{item.error_msg ?? 'error'}</span>
+        <span className="line-clamp-3 text-xs text-red-700 dark:text-red-300">{item.error_msg ?? 'error'}</span>
         <HoverActions item={item} onRetry={triggerRetry} onDelete={confirmDelete} busy={busy} />
       </article>
     );

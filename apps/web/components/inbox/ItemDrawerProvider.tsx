@@ -7,7 +7,8 @@ import { ItemDrawer } from './ItemDrawer';
 export type ItemMutation =
   | { kind: 'updated'; item: Item }
   | { kind: 'deleted'; id: string }
-  | { kind: 'retried'; item: Item };
+  | { kind: 'retried'; item: Item }
+  | { kind: 'created'; item: Item };
 
 type Listener = (m: ItemMutation) => void;
 

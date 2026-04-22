@@ -1,0 +1,26 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: Flowy
+        - heading "Your universal inbox for everything." [level=1] [ref=e9]:
+          - text: Your universal inbox
+          - text: for everything.
+        - paragraph [ref=e10]: Share from any app, and chat to find it later.
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - text: Email
+          - textbox "Email" [ref=e13]:
+            - /placeholder: you@example.com
+            - text: test@tryflowy.app
+        - generic [ref=e14]:
+          - text: Password
+          - textbox "Password" [ref=e15]:
+            - /placeholder: ••••••••
+            - text: test_password_12345
+        - alert [ref=e28]: Invalid email or password
+        - button "Sign in" [ref=e16] [cursor=pointer]
+      - paragraph [ref=e17]: No account? Use the iOS share sheet on any shared item to provision one.
+  - button "Open Next.js Dev Tools" [ref=e23] [cursor=pointer]:
+    - img [ref=e24]
+  - alert [ref=e27]

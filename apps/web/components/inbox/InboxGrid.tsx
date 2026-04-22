@@ -104,6 +104,8 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         setItems((prev) => prev.filter((i) => i.id !== m.id));
       } else if (m.kind === 'updated' || m.kind === 'retried') {
         setItems((prev) => prev.map((i) => (i.id === m.item.id ? { ...i, ...m.item } : i)));
+      } else if (m.kind === 'created') {
+        setItems((prev) => (prev.some((i) => i.id === m.item.id) ? prev : [m.item, ...prev]));
       }
     });
     return unsubscribe;

@@ -198,7 +198,7 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
             <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-muted transition-colors hover:bg-foreground/5 hover:text-foreground">
               <XIcon size={14} /> Close
             </button>
-            <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-red-700">{loadError}</p>
+            <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">{loadError}</p>
           </div>
         ) : !merged ? (
           <div className="flex items-center gap-2 text-muted">
@@ -254,7 +254,7 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-all hover:border-red-400 active:scale-[0.97] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-all hover:border-red-400 active:scale-[0.97] disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:border-red-800"
               >
                 <TrashIcon size={12} />
                 <span>{deleting ? 'Deleting…' : 'Delete'}</span>

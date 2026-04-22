@@ -52,7 +52,6 @@ export async function processUrl(item: ItemRecord): Promise<void> {
   const finalTitle = structured.title || scraped.title || url;
 
   const description = scraped.description?.slice(0, 500) ?? '';
-  await updateItem(item.id, {
   await finalizeItem(item.id, {
     title: finalTitle,
     summary: structured.summary,

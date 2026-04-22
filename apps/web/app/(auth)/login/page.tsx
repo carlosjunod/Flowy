@@ -82,7 +82,7 @@ export default function LoginPage() {
           />
         </div>
         {error ? (
-          <p role="alert" className="text-sm text-red-700 animate-fade-in" data-testid="login-error">
+          <p role="alert" className="text-sm text-red-700 dark:text-red-300 animate-fade-in" data-testid="login-error">
             {error}
           </p>
         ) : null}

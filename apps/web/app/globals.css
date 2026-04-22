@@ -3,9 +3,10 @@
 @tailwind utilities;
 
 /*
- * Design tokens — Warm Paper palette.
+ * Design tokens — Warm Paper (light) + Dark Graphite (dark).
  * Values are HSL triplets (no commas) to play with Tailwind's <alpha-value> syntax.
  * Category aliases for pills live at the bottom; keep one file so palette swaps are atomic.
+ * Theme switches via `.dark` class on <html> — see ThemeProvider.
  */
 :root {
   --color-bg: 40 30% 97%;
@@ -20,6 +21,22 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Instrument Serif', ui-serif, Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  color-scheme: light;
+}
+
+.dark {
+  /* Cool graphite — never pure black. Slight blue undertone complements the warm accent. */
+  --color-bg: 220 8% 11%;
+  --color-surface: 220 7% 14%;
+  --color-surface-elevated: 220 6% 17%;
+  --color-primary: 40 12% 92%;
+  --color-accent: 15 82% 62%;
+  --color-text: 40 12% 92%;
+  --color-text-muted: 220 6% 65%;
+  --color-border: 220 5% 24%;
+
+  color-scheme: dark;
 }
 
 html, body {
@@ -70,12 +87,12 @@ body {
  * Exposed as utilities so ItemCard can keep its hash→index logic unchanged.
  */
 @layer utilities {
-  .cat-rose      { @apply bg-rose-100    text-rose-800; }
-  .cat-amber     { @apply bg-amber-100   text-amber-800; }
-  .cat-emerald   { @apply bg-emerald-100 text-emerald-800; }
-  .cat-sky       { @apply bg-sky-100     text-sky-800; }
-  .cat-violet    { @apply bg-violet-100  text-violet-800; }
-  .cat-fuchsia   { @apply bg-fuchsia-100 text-fuchsia-800; }
+  .cat-rose      { @apply bg-rose-100    text-rose-800    dark:bg-rose-500/15    dark:text-rose-200; }
+  .cat-amber     { @apply bg-amber-100   text-amber-800   dark:bg-amber-500/15   dark:text-amber-200; }
+  .cat-emerald   { @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200; }
+  .cat-sky       { @apply bg-sky-100     text-sky-800     dark:bg-sky-500/15     dark:text-sky-200; }
+  .cat-violet    { @apply bg-violet-100  text-violet-800  dark:bg-violet-500/15  dark:text-violet-200; }
+  .cat-fuchsia   { @apply bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-500/15 dark:text-fuchsia-200; }
   .cat-default   { @apply bg-foreground/10 text-foreground/70; }
 
   /* Micro-animation helpers kept at utility layer so they compose with arbitrary delays. */
