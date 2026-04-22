@@ -1,3 +1,4 @@
+import { BulkAddBookmarksButton } from '@/components/inbox/BulkAddBookmarksButton';
 import { InboxGrid } from '@/components/inbox/InboxGrid';
 import { SubmitBookmarkButton } from '@/components/inbox/SubmitBookmarkButton';
 
@@ -13,7 +14,10 @@ export default function InboxPage() {
             Inbox
           </h1>
         </div>
-        <SubmitBookmarkButton />
+        <div className="flex items-center gap-2">
+          <BulkAddBookmarksButton />
+          <SubmitBookmarkButton />
+        </div>
       </header>
       <InboxGrid />
     </div>
