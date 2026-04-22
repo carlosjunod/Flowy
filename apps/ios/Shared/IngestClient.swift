@@ -8,7 +8,7 @@ public enum IngestError: Error {
 }
 
 public enum IngestType: String {
-  case url, screenshot
+  case url, screenshot, screen_recording
 }
 
 public struct IngestClient {
@@ -16,20 +16,41 @@ public struct IngestClient {
   public init(appURL: URL) { self.appURL = appURL }
 
   public func ingestURL(_ rawURL: String) async throws -> String {
-    try await post(body: ["type": IngestType.url.rawValue, "raw_url": rawURL])
+    try await postJSON(body: ["type": IngestType.url.rawValue, "raw_url": rawURL], timeout: 10)
   }
 
   public func ingestImage(_ jpegData: Data) async throws -> String {
-    let b64 = jpegData.base64EncodedString()
-    return try await post(body: ["type": IngestType.screenshot.rawValue, "raw_image": b64])
+    try await ingestImages([jpegData])
   }
 
-  private func post(body: [String: String]) async throws -> String {
+  public func ingestImages(_ images: [Data]) async throws -> String {
+    guard !images.isEmpty else { throw IngestError.encoding }
+    let encoded = images.map { $0.base64EncodedString() }
+    // Keep `raw_image` as the first image for any legacy server path.
+    var body: [String: Any] = [
+      "type": IngestType.screenshot.rawValue,
+      "raw_images": encoded,
+    ]
+    if let first = encoded.first { body["raw_image"] = first }
+    // Multi-image uploads are much larger than a URL payload — give them room to finish.
+    return try await postJSON(body: body, timeout: 60)
+  }
+
+  public func ingestScreenRecording(_ videoData: Data, mime: String) async throws -> String {
+    let b64 = videoData.base64EncodedString()
+    return try await postJSON(body: [
+      "type": IngestType.screen_recording.rawValue,
+      "raw_video": b64,
+      "video_mime": mime,
+    ], timeout: 120)
+  }
+
+  private func postJSON(body: [String: Any], timeout: TimeInterval) async throws -> String {
     guard let token = KeychainStore.read("pb_token") else { throw IngestError.notAuthenticated }
 
     var req = URLRequest(url: appURL.appendingPathComponent("/api/ingest"))
     req.httpMethod = "POST"
-    req.timeoutInterval = 10
+    req.timeoutInterval = timeout
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
     req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     do {
@@ -39,7 +60,7 @@ public struct IngestClient {
     }
 
     let config = URLSessionConfiguration.ephemeral
-    config.timeoutIntervalForRequest = 10
+    config.timeoutIntervalForRequest = timeout
     let session = URLSession(configuration: config)
 
     do {

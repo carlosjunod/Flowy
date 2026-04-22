@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
+    "bullmq": "^5.7.0",
+    "ioredis": "^5.4.1",
     "jose": "^5.10.0",
     "next": "^15.0.0",
     "pocketbase": "^0.21.3",

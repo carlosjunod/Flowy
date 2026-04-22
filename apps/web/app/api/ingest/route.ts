@@ -4,8 +4,20 @@ import { getQueue } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 
-const VALID_TYPES = new Set(['url', 'screenshot', 'youtube', 'video', 'instagram', 'receipt', 'pdf', 'audio']);
-const URL_TYPES = new Set(['url', 'youtube', 'video', 'instagram']);
+const VALID_TYPES = new Set([
+  'url',
+  'screenshot',
+  'youtube',
+  'video',
+  'instagram',
+  'reddit',
+  'receipt',
+  'pdf',
+  'audio',
+  'screen_recording',
+]);
+const URL_TYPES = new Set(['url', 'youtube', 'video', 'instagram', 'reddit']);
+const MAX_IMAGES = 10;
 
 const INSTAGRAM_POST_PATTERNS = [
   /^https?:\/\/(?:www\.)?instagram\.com\/p\//,
@@ -14,6 +26,16 @@ const INSTAGRAM_POST_PATTERNS = [
 
 function isInstagramPostUrl(url: string): boolean {
   return INSTAGRAM_POST_PATTERNS.some((r) => r.test(url));
+}
+
+const REDDIT_POST_PATTERNS = [
+  /^https?:\/\/(?:www\.|old\.|new\.|np\.|i\.)?reddit\.com\/r\/[^/]+\/comments\//i,
+  /^https?:\/\/(?:www\.)?reddit\.com\/r\/[^/]+\/s\//i,
+  /^https?:\/\/(?:www\.)?redd\.it\//i,
+];
+
+function isRedditPostUrl(url: string): boolean {
+  return REDDIT_POST_PATTERNS.some((r) => r.test(url));
 }
 
 type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
@@ -68,6 +90,9 @@ interface IngestBody {
   type?: string;
   raw_url?: string;
   raw_image?: string;
+  raw_images?: string[];
+  raw_video?: string;
+  video_mime?: string;
   source_url?: string;
 }
 
@@ -91,7 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'INVALID_TYPE' }, { status: 400 });
   }
 
-  const { type: incomingType, raw_url, raw_image, source_url } = body;
+  const { type: incomingType, raw_url, raw_image, raw_images, raw_video, video_mime, source_url } = body;
   if (!incomingType || typeof incomingType !== 'string' || !VALID_TYPES.has(incomingType)) {
     return NextResponse.json({ error: 'INVALID_TYPE' }, { status: 400 });
   }
@@ -104,14 +129,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // Auto-route Instagram post/carousel URLs to the instagram processor.
   // Reels stay on whatever type the client picked (usually `video`).
+  // Reddit comment/share URLs route to the reddit processor.
   const type =
     (incomingType === 'url' || incomingType === 'video') && raw_url && isInstagramPostUrl(raw_url)
       ? 'instagram'
+      : (incomingType === 'url' || incomingType === 'video') && raw_url && isRedditPostUrl(raw_url)
+      ? 'reddit'
       : incomingType;
 
+  // Normalize images into an array. Accept `raw_images` (multi) or legacy `raw_image` (single).
+  let images: string[] = [];
+  if (Array.isArray(raw_images) && raw_images.length > 0) {
+    images = raw_images.filter((s): s is string => typeof s === 'string' && s.length > 0);
+  } else if (typeof raw_image === 'string' && raw_image.length > 0) {
+    images = [raw_image];
+  }
+  if (images.length > MAX_IMAGES) images = images.slice(0, MAX_IMAGES);
+
   if (type === 'screenshot') {
-    if (!raw_image || typeof raw_image !== 'string') {
+    if (images.length === 0) {
       return NextResponse.json({ error: 'MISSING_IMAGE' }, { status: 400 });
+    }
+  }
+  if (type === 'screen_recording') {
+    if (!raw_video || typeof raw_video !== 'string') {
+      return NextResponse.json({ error: 'MISSING_VIDEO' }, { status: 400 });
     }
   }
 
@@ -131,7 +173,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       itemId: id,
       type,
       raw_url,
-      raw_image,
+      // Preserve legacy single-image field so existing workers keep working.
+      raw_image: images[0],
+      raw_images: images.length > 0 ? images : undefined,
+      raw_video,
+      video_mime,
     });
 
     return NextResponse.json({ data: { id, status: 'pending' } }, { status: 201 });

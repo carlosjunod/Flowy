@@ -2,7 +2,17 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 
 export type ItemStatus = 'pending' | 'processing' | 'ready' | 'error';
-export type ItemType = 'url' | 'screenshot' | 'youtube' | 'receipt' | 'pdf' | 'audio' | 'video' | 'instagram';
+export type ItemType =
+  | 'url'
+  | 'screenshot'
+  | 'youtube'
+  | 'receipt'
+  | 'pdf'
+  | 'audio'
+  | 'video'
+  | 'instagram'
+  | 'reddit'
+  | 'screen_recording';
 
 export type MediaSlideKind = 'image' | 'video';
 

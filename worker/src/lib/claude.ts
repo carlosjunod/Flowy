@@ -158,6 +158,102 @@ export async function analyzeImage({ mediaType, data }: VisionArgs): Promise<Vis
   }
 }
 
+const MULTI_IMAGE_SYSTEM_PROMPT = `You are a visual content classifier analyzing a set of images shared together as a single entry (e.g. a series of screenshots).
+
+Look at every image, then determine whether they tell one coherent story or are unrelated fragments. Respond with ONLY a single JSON object — no prose, no code fences — matching this exact shape:
+
+{
+  "title": string,              // short, clear title for the whole group — max 80 chars
+  "summary": string,            // concise summary that stitches the pieces together — max 200 chars
+  "tags": string[],             // up to 5 lowercase tags that apply to the whole set
+  "category": string,           // single lowercase word category
+  "extracted_text": string,     // all visible text across all images, joined with newlines, in order
+  "coherence": "related" | "unrelated",
+  "coherence_note": string,     // if unrelated, a short note explaining that the pieces don't seem related; empty string if related
+  "per_image": [                // one entry per image, in the order they were provided
+    { "summary": string, "extracted_text": string }
+  ]
+}`;
+
+export interface MultiImageResult extends StructuredData {
+  extracted_text: string;
+  coherence: 'related' | 'unrelated';
+  coherence_note: string;
+  per_image: { summary: string; extracted_text: string }[];
+}
+
+export async function analyzeImages(
+  images: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'; data: string }[],
+): Promise<MultiImageResult> {
+  if (images.length === 0) {
+    throw new ClaudeError('VISION_FAILED', 'no images to analyze');
+  }
+  try {
+    const content: Array<
+      | { type: 'text'; text: string }
+      | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+    > = [];
+    images.forEach((img, i) => {
+      content.push({ type: 'text', text: `Image ${i + 1} of ${images.length}:` });
+      content.push({
+        type: 'image',
+        source: { type: 'base64', media_type: img.mediaType, data: img.data },
+      });
+    });
+    content.push({
+      type: 'text',
+      text: 'Classify the set per the system schema. The per_image array must have exactly one entry per image in order.',
+    });
+
+    const resp = await getClaude().messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system: MULTI_IMAGE_SYSTEM_PROMPT,
+      // The SDK types accept this shape via union; cast to keep this file free of SDK namespace types.
+      messages: [{ role: 'user', content: content as never }],
+    });
+    const textBlock = resp.content.find((b) => b.type === 'text');
+    if (!textBlock || textBlock.type !== 'text') {
+      throw new ClaudeError('NO_TEXT_RESPONSE', 'Claude returned no text block');
+    }
+    const firstBrace = textBlock.text.indexOf('{');
+    const lastBrace = textBlock.text.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new ClaudeError('VISION_PARSE_FAILED', 'no JSON in vision response');
+    }
+    let parsed: Partial<MultiImageResult>;
+    try {
+      parsed = JSON.parse(textBlock.text.slice(firstBrace, lastBrace + 1)) as Partial<MultiImageResult>;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new ClaudeError('VISION_PARSE_FAILED', msg);
+    }
+    const perImage = Array.isArray(parsed.per_image) ? parsed.per_image : [];
+    const normalizedPerImage = images.map((_, i) => {
+      const entry = perImage[i] ?? {};
+      return {
+        summary: String((entry as { summary?: unknown }).summary ?? '').slice(0, 400),
+        extracted_text: String((entry as { extracted_text?: unknown }).extracted_text ?? ''),
+      };
+    });
+    const coherence = parsed.coherence === 'unrelated' ? 'unrelated' : 'related';
+    return {
+      title: String(parsed.title ?? '').slice(0, 200),
+      summary: String(parsed.summary ?? '').slice(0, 500),
+      tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5).map(String) : [],
+      category: String(parsed.category ?? 'uncategorized').toLowerCase().split(/\s+/)[0] ?? 'uncategorized',
+      extracted_text: String(parsed.extracted_text ?? ''),
+      coherence,
+      coherence_note: String(parsed.coherence_note ?? ''),
+      per_image: normalizedPerImage,
+    };
+  } catch (err) {
+    if (err instanceof ClaudeError) throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ClaudeError('VISION_FAILED', msg);
+  }
+}
+
 /**
  * Generate a 1536-dim embedding for text.
  * Uses OpenAI's text-embedding-3-small when OPENAI_API_KEY is set.
