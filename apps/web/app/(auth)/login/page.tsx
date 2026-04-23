@@ -123,7 +123,7 @@ export default function LoginPage() {
       size: 'large',
       shape: 'pill',
       text: 'continue_with',
-      width: 320,
+      width: 360,
     });
   }, [gsiReady, handleGoogleCredential]);
 
@@ -294,7 +294,27 @@ export default function LoginPage() {
               </button>
             ) : null}
             {googleConfigured ? (
-              <div ref={googleBtnRef} className="flex justify-center" data-testid="google-signin" />
+              <div className="flex justify-center">
+                <div className="group relative h-10 w-[360px] max-w-full">
+                  <div
+                    aria-hidden="true"
+                    className={`pointer-events-none flex h-full w-full items-center justify-center gap-3 rounded-full bg-black px-4 text-sm font-medium text-white ring-1 ring-white/15 transition group-hover:bg-black/80 ${gsiReady ? '' : 'opacity-50'}`}
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[18px] w-[18px]">
+                      <path fill="#EA4335" d="M12 5.04c1.8 0 3.4.65 4.67 1.82l3.5-3.5C18.02 1.38 15.24 0 12 0 7.31 0 3.26 2.69 1.28 6.61l4.07 3.16C6.31 6.78 8.93 5.04 12 5.04z"/>
+                      <path fill="#4285F4" d="M23.49 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.44c-.28 1.5-1.12 2.77-2.38 3.62l3.84 2.97c2.24-2.07 3.59-5.12 3.59-8.78z"/>
+                      <path fill="#FBBC05" d="M5.34 14.14a7.21 7.21 0 0 1 0-4.28L1.27 6.7A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.4l4.07-3.26z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.95-2.93l-3.84-2.97c-1.07.72-2.45 1.15-4.11 1.15-3.17 0-5.86-2.14-6.82-5.02L1.1 17.49C3.08 21.41 7.14 24 12 24z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                  </div>
+                  <div
+                    ref={googleBtnRef}
+                    className="absolute inset-0 opacity-0 [color-scheme:dark]"
+                    data-testid="google-signin"
+                  />
+                </div>
+              </div>
             ) : null}
           </>
         ) : null}
