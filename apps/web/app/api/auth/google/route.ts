@@ -63,6 +63,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     identity = await verifyGoogleIdentityToken(idToken);
   } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[auth/google] token verify failed:', detail);
     if (err instanceof GoogleAuthError) {
       return NextResponse.json({ error: err.code }, { status: 401 });
     }
@@ -72,14 +74,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let password: string;
   try {
     password = derivePassword(identity.sub);
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[auth/google] derivePassword failed:', detail);
     return NextResponse.json({ error: 'SERVER_MISCONFIGURED' }, { status: 500 });
   }
 
   const adminPb = pbServer();
   try {
     await authAdmin(adminPb);
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[auth/google] admin auth failed:', detail);
     return NextResponse.json({ error: 'SERVER_MISCONFIGURED' }, { status: 500 });
   }
 
