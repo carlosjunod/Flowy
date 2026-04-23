@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import Script from 'next/script';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getPb } from '@/lib/pocketbase';
 import { Brand } from '@/components/ui/Brand';
@@ -300,7 +301,10 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-xs text-muted">
-        No account? Use the iOS share sheet on any shared item to provision one.
+        No account?{' '}
+        <Link href="/signup" className="text-accent hover:underline">
+          Create one
+        </Link>
       </p>
     </div>
   );
