@@ -11,4 +11,5 @@ RUN unzip /tmp/pb.zip -d /pb/ && rm /tmp/pb.zip
 
 EXPOSE 8080
 
-CMD /pb/pocketbase serve --http=0.0.0.0:${PORT:-8080} --dir=/pb/pb_data --publicDir=/pb/pb_public
+CMD rm -rf /pb/pb_data/data.db /pb/pb_data/auxiliary.db 2>/dev/null; \
+    /pb/pocketbase serve --http=0.0.0.0:${PORT:-8080} --dir=/pb/pb_data --publicDir=/pb/pb_public
