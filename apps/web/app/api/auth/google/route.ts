@@ -84,8 +84,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     await authAdmin(adminPb);
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    console.error('[auth/google] admin auth failed:', detail);
+    if (err instanceof ClientResponseError) {
+      console.error(
+        `[auth/google] admin auth failed: status=${err.status} url=${err.url} message=${err.message}`,
+      );
+    } else {
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error('[auth/google] admin auth failed:', detail);
+    }
     return NextResponse.json({ error: 'SERVER_MISCONFIGURED' }, { status: 500 });
   }
 
