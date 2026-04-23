@@ -30,8 +30,9 @@ COPY pb_migrations /pb/pb_migrations
 
 EXPOSE 8080
 
-CMD ["/pb/pocketbase", "serve", \
-     "--http=0.0.0.0:8080", \
-     "--dir=/pb/pb_data", \
-     "--migrationsDir=/pb/pb_migrations", \
-     "--publicDir=/pb/pb_public"]
+# RESET_DB=1 wipes the data volume once on startup. Use this as an
+# escape hatch when the DB schema is from a future PB version that
+# cannot be downgraded (e.g. a volume carried over from a prior 0.36.x
+# deploy). UNSET this env var immediately after the wipe deploy
+# finishes — otherwise every restart nukes your users and data.
+CMD sh -c 'if [ "$RESET_DB" = "1" ]; then echo "[pb] RESET_DB=1 set, wiping /pb/pb_data/*"; rm -rf /pb/pb_data/*; fi; exec /pb/pocketbase serve --http=0.0.0.0:8080 --dir=/pb/pb_data --migrationsDir=/pb/pb_migrations --publicDir=/pb/pb_public'
