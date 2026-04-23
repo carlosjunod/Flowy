@@ -26,7 +26,7 @@ async function authAdmin(pb: PocketBase): Promise<void> {
   const email = process.env.PB_ADMIN_EMAIL;
   const password = process.env.PB_ADMIN_PASSWORD;
   if (!email || !password) throw new Error('PB_ADMIN_EMAIL and PB_ADMIN_PASSWORD are required');
-  await pb.collection('_superusers').authWithPassword(email, password);
+  await pb.admins.authWithPassword(email, password);
 }
 
 async function findUserByAppleSub(pb: PocketBase, sub: string): Promise<{ id: string; email: string } | null> {

@@ -39,7 +39,7 @@ export default function SignupPage() {
     setError(null);
 
     if (password.length < MIN_PASSWORD_LEN) {
-      setError(ERROR_MESSAGES.WEAK_PASSWORD);
+      setError(ERROR_MESSAGES.WEAK_PASSWORD ?? null);
       return;
     }
     if (password !== confirm) {

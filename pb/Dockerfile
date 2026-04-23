@@ -4,14 +4,19 @@
 # A persistent Railway volume MUST be mounted at /pb/pb_data — otherwise the
 # SQLite DB and the _migrations tracking table are wiped on every redeploy.
 #
-# The web + worker JS SDK (pocketbase@^0.26.x) uses the _superusers auth
-# collection introduced in PB 0.23, so 0.36.x is fine. If you ever downgrade
-# the SDK below 0.22, re-pin PB_VERSION to 0.22.x — the admin auth endpoint
-# was removed in 0.23.
+# PINNED to 0.22.x intentionally — DO NOT BUMP without also:
+#   1. Upgrading apps/web + worker `pocketbase` SDK to >= 0.22.x
+#      (PB 0.23 removed /api/admins/* → SDK pre-0.22 gets 404s).
+#   2. Rewriting every file in pb_migrations/ for the new JS VM API
+#      (PB 0.23 removed the `Dao` class and `SchemaField` in favor of
+#      `$app` and typed field classes — the existing migrations call
+#      `new Dao(db)` and throw "Dao is not defined" on startup).
+# Both were silently broken by commit 6fe5d05; this pin restores the
+# coherent 0.22.x stack that the migrations were actually written for.
 
 FROM alpine:3.19
 
-ARG PB_VERSION=0.36.8
+ARG PB_VERSION=0.22.21
 
 RUN apk add --no-cache unzip ca-certificates
 

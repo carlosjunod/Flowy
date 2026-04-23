@@ -18,7 +18,7 @@
     "dotenv": "^16.4.5",
     "ioredis": "^5.4.1",
     "openai": "^4.60.0",
-    "pocketbase": "^0.26.8",
+    "pocketbase": "^0.21.3",
     "tmp": "^0.2.3",
     "youtube-transcript": "^1.2.1"
   },

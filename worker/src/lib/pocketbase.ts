@@ -106,7 +106,7 @@ async function authenticateAdmin(): Promise<void> {
   if (!PB_ADMIN_EMAIL || !PB_ADMIN_PASSWORD) {
     throw new Error('PB_ADMIN_EMAIL and PB_ADMIN_PASSWORD must be set');
   }
-  await pb.collection('_superusers').authWithPassword(PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD);
+  await pb.admins.authWithPassword(PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD);
 }
 
 export function ensureAuth(): Promise<void> {
