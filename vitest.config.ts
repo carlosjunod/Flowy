@@ -20,6 +20,7 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'apps/web'),
       '@worker': resolve(__dirname, 'worker/src'),
+      pocketbase: resolve(__dirname, 'apps/web/node_modules/pocketbase/dist/pocketbase.es.mjs'),
     },
   },
 });
