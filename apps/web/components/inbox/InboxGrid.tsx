@@ -117,6 +117,29 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
     return unsubscribe;
   }, [drawer]);
 
+  // PocketBase realtime — observes the worker's status transitions (pending → ready)
+  // and any external mutations. The items collection listRule restricts events to the
+  // authenticated user, so no client-side user filter is needed.
+  useEffect(() => {
+    const pb = getPb();
+    if (!pb.authStore.isValid) return;
+    let cancelled = false;
+    const unsubPromise = pb.collection('items').subscribe<Item>('*', (e) => {
+      if (cancelled) return;
+      if (e.action === 'update') {
+        setItems((prev) => prev.map((i) => (i.id === e.record.id ? { ...i, ...e.record } : i)));
+      } else if (e.action === 'delete') {
+        setItems((prev) => prev.filter((i) => i.id !== e.record.id));
+      } else if (e.action === 'create') {
+        setItems((prev) => (prev.some((i) => i.id === e.record.id) ? prev : [e.record, ...prev]));
+      }
+    });
+    return () => {
+      cancelled = true;
+      void unsubPromise.then((fn) => fn()).catch(() => {});
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     let out = items;
     if (filter) out = out.filter((i) => i.category === filter);

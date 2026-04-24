@@ -1419,14 +1419,16 @@ git commit -m "[CYCLE-12] ItemDrawer: add Reload toolbar button"
 
 - [ ] **Step 12.1: Wire ItemChip context-menu**
 
+The chip needs a popover that opens *directly* on right-click / long-press / Shift+F10 — not a ⋯ trigger that reveals another trigger. Do NOT use `ItemActionsMenu` here; render the Open/Reload/Delete items inline via `useItemActions`.
+
 Replace the full content of `apps/web/components/chat/ItemChip.tsx` with:
 
 ```typescript
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useItemDrawer } from '@/components/inbox/ItemDrawerProvider';
-import { ItemActionsMenu } from '@/components/inbox/ItemActionsMenu';
+import { useItemActions } from '@/lib/hooks/useItemActions';
 import type { ChatItemRef } from './ChatMessage';
 import { TypeIcon } from '@/components/ui/icons';
 
@@ -1442,16 +1444,37 @@ interface Props {
 
 export function ItemChip({ id, item, status = 'ready' }: Props) {
   const drawer = useItemDrawer();
+  const actions = useItemActions();
   const [menuOpen, setMenuOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rootRef = useRef<HTMLSpanElement | null>(null);
   const label = item?.title ? truncate(item.title, 32) : id;
+  const reloadDisabled = status === 'pending' || status === 'processing';
 
   const clearLongPress = () => {
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   };
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setMenuOpen(false); }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const run = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation(); fn(); setMenuOpen(false);
+  };
+
   return (
-    <span className="relative inline-block align-baseline">
+    <span ref={rootRef} className="relative inline-block align-baseline">
       <button
         type="button"
         onClick={() => { if (!menuOpen) drawer.open(id); }}
@@ -1462,6 +1485,8 @@ export function ItemChip({ id, item, status = 'ready' }: Props) {
         onKeyDown={(e) => {
           if (e.shiftKey && e.key === 'F10') { e.preventDefault(); setMenuOpen(true); }
         }}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
         data-testid="chat-item-chip"
         className="inline-flex items-baseline gap-1 rounded-md border border-accent/20 bg-accent/10 px-1.5 py-0.5 align-baseline text-xs font-medium text-accent transition-colors hover:border-accent/40 hover:bg-accent/20"
       >
@@ -1469,16 +1494,25 @@ export function ItemChip({ id, item, status = 'ready' }: Props) {
         <span className="max-w-[18ch] truncate">{label}</span>
       </button>
       {menuOpen ? (
-        <span className="absolute left-0 top-full z-20 mt-1" onMouseLeave={() => setMenuOpen(false)}>
-          <ItemActionsMenu itemId={id} status={status} variant="inline" />
-        </span>
+        <div
+          role="menu"
+          className="absolute left-0 top-full z-30 mt-1 min-w-[140px] overflow-hidden rounded-md border border-border bg-surface-elevated text-sm shadow-lg"
+        >
+          <button role="menuitem" type="button" onClick={run(() => actions.openItem(id))}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/10">Open</button>
+          <button role="menuitem" type="button" disabled={reloadDisabled}
+            onClick={run(() => { void actions.reloadItem(id); })}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-50">Reload</button>
+          <button role="menuitem" type="button" onClick={run(() => { void actions.deleteItem(id); })}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-red-500 hover:bg-red-500/10">Delete</button>
+        </div>
       ) : null}
     </span>
   );
 }
 ```
 
-Note: `ItemActionsMenu` with `variant="inline"` renders its trigger as a non-hidden ⋯ button. For the chip's on-demand popup, we wrap it in a positioned span that only appears on context/long-press. The `ItemActionsMenu` trigger is still clickable but since we auto-show the span when `menuOpen`, UX works via right-click → menu visible → click item → action runs.
+Why this shape: `ItemActionsMenu` is optimized for the "card corner hover ⋯" pattern — it owns its own trigger button. The chip needs the opposite: the chip IS the trigger, and the menu body renders directly below it. Reusing `ItemActionsMenu` with `variant="inline"` would create a double-trigger (right-click the chip → ⋯ button appears → click ⋯ → menu shows). The inline menu-items above give single-gesture UX while reusing the same `useItemActions` handlers, so behavior stays consistent with the other views.
 
 - [ ] **Step 12.2: Update ChatMessage callers if they pass extra props**
 

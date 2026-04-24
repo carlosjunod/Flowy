@@ -194,8 +194,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   //   type=url   + /p/, /tv/, /reel/, /reels/, /stories/ → instagram
   //   type=video + /p/, /tv/, /stories/                  → instagram
   //   type=video + /reel/, /reels/                       → stays video
+<<<<<<< Updated upstream
   // Stories always route to the instagram processor — they're multi-slide
   // playlists that only the carousel-aware pipeline handles correctly.
+=======
+  // Stories require yt-dlp cookies to extract (see YTDLP_COOKIES_FILE).
+>>>>>>> Stashed changes
   // Reddit comment/share URLs route to the reddit processor.
   const instagramCoerce =
     raw_url !== undefined &&

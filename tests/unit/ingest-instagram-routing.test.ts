@@ -137,5 +137,30 @@ describe('Instagram URL routing patterns', () => {
     it('type=url + non-Instagram URL → unchanged', () => {
       expect(coerceType('url', 'https://vercel.com/blog')).toBe('url');
     });
+    it('type=url + /stories/ → instagram (stories bug fix, Apr 2026)', () => {
+      expect(
+        coerceType(
+          'url',
+          'https://www.instagram.com/stories/chase.h.ai/3882141928309783621/?utm_source=ig_story_item_share',
+        ),
+      ).toBe('instagram');
+    });
+    it('type=video + /stories/ → instagram (shared from mobile)', () => {
+      expect(
+        coerceType('video', 'https://www.instagram.com/stories/chase.h.ai/3882141928309783621/'),
+      ).toBe('instagram');
+    });
+  });
+
+  describe('isInstagramStoryUrl', () => {
+    it('matches /stories/<user>/<id>/', () => {
+      expect(isInstagramStoryUrl('https://www.instagram.com/stories/chase.h.ai/3882141928309783621/')).toBe(true);
+      expect(isInstagramStoryUrl('https://instagram.com/stories/abc/123/?igsh=x')).toBe(true);
+    });
+    it('does not match posts, reels, or reels-collections', () => {
+      expect(isInstagramStoryUrl('https://www.instagram.com/p/ABC/')).toBe(false);
+      expect(isInstagramStoryUrl('https://www.instagram.com/reel/ABC/')).toBe(false);
+      expect(isInstagramStoryUrl('https://www.instagram.com/reels/ABC/')).toBe(false);
+    });
   });
 });

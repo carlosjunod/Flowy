@@ -113,7 +113,7 @@ function decodeEntities(u: string): string {
 async function fetchImage(url: string): Promise<Buffer> {
   let res: Response;
   try {
-    res = await fetch(url);
+    res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new ProcessorError('MEDIA_FETCH_FAILED', msg);

@@ -271,6 +271,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
           'content-type': 'application/json',
         },
         body: JSON.stringify({ model: EMBEDDING_MODEL, input: trimmed }),
+        signal: AbortSignal.timeout(20_000),
       });
       if (!res.ok) {
         const body = await res.text();
