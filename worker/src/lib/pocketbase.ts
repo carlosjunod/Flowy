@@ -23,6 +23,8 @@ export interface MediaSlide {
   source_url?: string;
   summary?: string;
   extracted_text?: string;
+  transcript?: string;
+  taken_at?: string;
 }
 
 export interface ItemRecord {
