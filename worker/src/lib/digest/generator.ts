@@ -28,7 +28,7 @@ interface UserRecord {
 
 export async function getUser(userId: string): Promise<UserRecord> {
   await ensureAuth();
-  return pb.collection('users').getOne<UserRecord>(userId);
+  return pb.collection('users').getOne<UserRecord>(userId, { requestKey: null });
 }
 
 async function fetchRecentItems(userId: string, sinceIso: string): Promise<ItemRecord[]> {
@@ -38,6 +38,7 @@ async function fetchRecentItems(userId: string, sinceIso: string): Promise<ItemR
   return pb.collection('items').getFullList<ItemRecord>({
     filter,
     sort: '-created',
+    requestKey: null,
   });
 }
 
@@ -48,7 +49,10 @@ export async function hasRecentDigest(userId: string, now: Date): Promise<boolea
   try {
     await pb
       .collection('digests')
-      .getFirstListItem<DigestRecord>(`user = "${safeUser}" && generated_at >= "${threshold}"`);
+      .getFirstListItem<DigestRecord>(
+        `user = "${safeUser}" && generated_at >= "${threshold}"`,
+        { requestKey: null },
+      );
     return true;
   } catch (err) {
     if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
@@ -159,13 +163,16 @@ export async function generateDigestForUser(userId: string): Promise<GenerateDig
   };
 
   await ensureAuth();
-  const record = await pb.collection('digests').create<DigestRecord>({
-    user: userId,
-    generated_at: now.toISOString(),
-    content,
-    items_count: items.length,
-    categories_count: sections.length,
-  });
+  const record = await pb.collection('digests').create<DigestRecord>(
+    {
+      user: userId,
+      generated_at: now.toISOString(),
+      content,
+      items_count: items.length,
+      categories_count: sections.length,
+    },
+    { requestKey: null },
+  );
 
   const user = await getUser(userId).catch(() => null);
   const push = await sendPush(user?.push_token, {

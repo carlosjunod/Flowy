@@ -73,6 +73,7 @@ async function findUsersDueNow(nowHhmm: string): Promise<DigestUserRow[]> {
   return pb.collection('users').getFullList<DigestUserRow>({
     filter,
     fields: 'id,digest_enabled,digest_time',
+    requestKey: null,
   });
 }
 

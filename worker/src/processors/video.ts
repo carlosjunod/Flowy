@@ -11,6 +11,7 @@ import { createEmbedding, type ItemRecord } from '../lib/pocketbase.js';
 import { extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
 import { uploadFile } from '../lib/storage.js';
 import { finalizeItem } from '../lib/finalize.js';
+import { ytdlpCookieArgs } from '../lib/ytdlp.js';
 import { ProcessorError } from './url.processor.js';
 
 const execFileP = promisify(execFile);
@@ -69,6 +70,7 @@ async function runYtDlp(url: string, template: string): Promise<void> {
   const ytdlpPath = process.env.YTDLP_PATH ?? 'yt-dlp';
   const ffmpegPath = process.env.FFMPEG_PATH;
   const args = [
+    ...ytdlpCookieArgs(),
     '--no-playlist',
     '--write-thumbnail',
     '--convert-thumbnails', 'jpg',

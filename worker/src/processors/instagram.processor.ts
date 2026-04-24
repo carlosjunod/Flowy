@@ -5,6 +5,7 @@ import { createEmbedding, type ItemRecord, type MediaSlide, type MediaSlideKind 
 import { analyzeImage, extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
 import { uploadFile } from '../lib/storage.js';
 import { finalizeItem } from '../lib/finalize.js';
+import { ytdlpCookieArgs } from '../lib/ytdlp.js';
 import { ProcessorError } from './url.processor.js';
 
 const execFileP = promisify(execFile);
@@ -52,7 +53,7 @@ async function dumpMetadata(url: string): Promise<YtDlpEntry[]> {
   try {
     const { stdout } = await execFileP(
       ytdlpPath,
-      ['--yes-playlist', '--dump-single-json', '--no-warnings', url],
+      [...ytdlpCookieArgs(), '--yes-playlist', '--dump-single-json', '--no-warnings', url],
       { timeout: 60_000, maxBuffer: 32 * 1024 * 1024, env: ytDlpEnv() },
     );
     const parsed = JSON.parse(stdout) as YtDlpDump;
