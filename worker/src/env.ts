@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,5 +27,23 @@ for (const path of candidates) {
   if (!loaded.has(path) && existsSync(path)) {
     config({ path, override: false });
     loaded.add(path);
+  }
+}
+
+// Base64-encoded cookies (common in Railway/Fly prod env) decode to a tmp file
+// and flow into the existing YTDLP_COOKIES_FILE pathway. An explicit _FILE wins
+// if both are set — lets operators ship a persistent file when preferred.
+const cookiesB64 = process.env.YTDLP_COOKIES_B64?.trim();
+if (cookiesB64 && !process.env.YTDLP_COOKIES_FILE?.trim()) {
+  try {
+    const dir = join(tmpdir(), 'tryflowy');
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, 'ig-cookies.txt');
+    writeFileSync(path, Buffer.from(cookiesB64, 'base64'), { mode: 0o600 });
+    process.env.YTDLP_COOKIES_FILE = path;
+    console.log(`[env] decoded YTDLP_COOKIES_B64 → ${path}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[env] failed to decode YTDLP_COOKIES_B64: ${msg}`);
   }
 }

@@ -29,12 +29,20 @@ const INSTAGRAM_REEL_PATTERNS = [
   /^https?:\/\/(?:www\.)?instagram\.com\/reels\//,
 ];
 
+const INSTAGRAM_STORY_PATTERNS = [
+  /^https?:\/\/(?:www\.)?instagram\.com\/stories\//,
+];
+
 function isInstagramPostUrl(url: string): boolean {
   return INSTAGRAM_POST_PATTERNS.some((r) => r.test(url));
 }
 
 function isInstagramReelUrl(url: string): boolean {
   return INSTAGRAM_REEL_PATTERNS.some((r) => r.test(url));
+}
+
+function isInstagramStoryUrl(url: string): boolean {
+  return INSTAGRAM_STORY_PATTERNS.some((r) => r.test(url));
 }
 
 const REDDIT_POST_PATTERNS = [
@@ -139,15 +147,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auto-route Instagram URLs when the client couldn't classify them (bulk-add
   // sends type='url' for every pasted link). Mobile share-sheet sends type='video'
   // for reels deliberately — keep that path on the faster `video` processor.
-  //   type=url   + /p/, /tv/, /reel/, /reels/ → instagram
-  //   type=video + /p/, /tv/                  → instagram
-  //   type=video + /reel/, /reels/            → stays video
+  //   type=url   + /p/, /tv/, /reel/, /reels/, /stories/ → instagram
+  //   type=video + /p/, /tv/, /stories/                  → instagram
+  //   type=video + /reel/, /reels/                       → stays video
+  // Stories always route to the instagram processor — they're multi-slide
+  // playlists that only the carousel-aware pipeline handles correctly.
   // Reddit comment/share URLs route to the reddit processor.
   const instagramCoerce =
     raw_url !== undefined &&
     raw_url.length > 0 &&
-    ((incomingType === 'url' && (isInstagramPostUrl(raw_url) || isInstagramReelUrl(raw_url))) ||
-      (incomingType === 'video' && isInstagramPostUrl(raw_url)));
+    ((incomingType === 'url' &&
+      (isInstagramPostUrl(raw_url) || isInstagramReelUrl(raw_url) || isInstagramStoryUrl(raw_url))) ||
+      (incomingType === 'video' && (isInstagramPostUrl(raw_url) || isInstagramStoryUrl(raw_url))));
 
   const type = instagramCoerce
     ? 'instagram'
