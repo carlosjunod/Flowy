@@ -3,6 +3,7 @@ export type DeleteResult =
   | { ok: false; code: 'ITEM_NOT_FOUND' | 'DELETE_FAILED'; message?: string };
 
 interface PbLike {
+  filter: (template: string, vars: Record<string, unknown>) => string;
   collection: (name: string) => {
     getOne: (id: string) => Promise<{ id: string; user: string }>;
     getFullList: (opts: { filter: string; fields: string }) => Promise<{ id: string }[]>;
@@ -25,11 +26,16 @@ export async function deleteItemWithCascade(
   if (item.user !== userId) return { ok: false, code: 'ITEM_NOT_FOUND' };
 
   try {
+    const filter = client.filter('item = {:id}', { id });
     const embeddings = await client.collection('embeddings').getFullList({
-      filter: `item = "${id}"`,
+      filter,
       fields: 'id',
     });
-    await Promise.all(embeddings.map((e) => client.collection('embeddings').delete(e.id)));
+    // Sequential delete to avoid PocketBase auto-cancel race on shared requestKey
+    // (same class of bug fixed in commit 25a8098 for the worker).
+    for (const e of embeddings) {
+      await client.collection('embeddings').delete(e.id);
+    }
     await client.collection('items').delete(id);
     return { ok: true };
   } catch (err) {

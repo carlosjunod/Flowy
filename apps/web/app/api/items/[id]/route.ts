@@ -84,7 +84,9 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
   const result = await deleteItemWithCascade(auth.pb, id, auth.userId);
   if (!result.ok) {
     const status = result.code === 'ITEM_NOT_FOUND' ? 404 : 500;
-    return NextResponse.json({ error: result.code }, { status });
+    const body: { error: string; detail?: string } = { error: result.code };
+    if (result.message) body.detail = result.message;
+    return NextResponse.json(body, { status });
   }
   return NextResponse.json({ data: { id } });
 }

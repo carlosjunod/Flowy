@@ -9,6 +9,8 @@ describe('deleteItemWithCascade', () => {
     const getOne = vi.fn().mockResolvedValue({ id: 'i1', user: 'u1' });
 
     const pb = {
+      filter: (template: string, vars: Record<string, unknown>) =>
+        template.replace('{:id}', `"${vars.id}"`),
       collection: (name: string) => {
         if (name === 'embeddings') return { getFullList, delete: deleteEmbedding };
         if (name === 'items') return { getOne, delete: deleteItem };

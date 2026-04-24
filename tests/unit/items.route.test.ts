@@ -9,6 +9,9 @@ const getFullListMock = vi.fn();
 vi.mock('pocketbase', () => {
   class MockPocketBase {
     authStore = { save: () => undefined };
+    filter(template: string, vars: Record<string, unknown>): string {
+      return template.replace('{:id}', `"${vars.id}"`);
+    }
     collection(name: string) {
       return {
         authRefresh: () => authRefreshMock(),
