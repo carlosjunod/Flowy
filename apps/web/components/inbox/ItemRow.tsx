@@ -3,6 +3,7 @@
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { thumbnailUrl } from './ItemCard';
+import { ItemActionsMenu } from './ItemActionsMenu';
 import { TypeIcon } from '@/components/ui/icons';
 
 function domainFromUrl(url?: string | null): string | null {
@@ -31,12 +32,16 @@ export function ItemRow({ item }: { item: Item }) {
   const domain = domainFromUrl(item.source_url ?? item.raw_url);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => drawer.open(item.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); drawer.open(item.id); }
+      }}
       data-testid="item-row"
       data-category={item.category ?? ''}
-      className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface-elevated p-2.5 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      className="group relative flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-elevated p-2.5 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-muted">
         {thumb ? (
@@ -60,6 +65,9 @@ export function ItemRow({ item }: { item: Item }) {
         </span>
       ) : null}
       <span className="hidden shrink-0 text-[11px] text-muted sm:inline">{relativeDate(item.created)}</span>
-    </button>
+      <div className="ml-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <ItemActionsMenu itemId={item.id} status={item.status} variant="hover" />
+      </div>
+    </div>
   );
 }

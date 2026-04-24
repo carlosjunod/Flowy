@@ -3,6 +3,7 @@
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { thumbnailUrl } from './ItemCard';
+import { ItemActionsMenu } from './ItemActionsMenu';
 import { TypeIcon } from '@/components/ui/icons';
 
 function domainFromUrl(url?: string | null): string | null {
@@ -31,12 +32,16 @@ export function ItemDetailRow({ item }: { item: Item }) {
   const domain = domainFromUrl(item.source_url ?? item.raw_url);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => drawer.open(item.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); drawer.open(item.id); }
+      }}
       data-testid="item-detail-row"
       data-category={item.category ?? ''}
-      className="group flex w-full gap-4 rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      className="group relative flex w-full cursor-pointer gap-4 rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
     >
       <div className="flex h-24 w-32 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-muted">
         {thumb ? (
@@ -65,6 +70,9 @@ export function ItemDetailRow({ item }: { item: Item }) {
           ) : null}
         </div>
       </div>
-    </button>
+      <div className="absolute right-3 top-3" onClick={(e) => e.stopPropagation()}>
+        <ItemActionsMenu itemId={item.id} status={item.status} variant="hover" />
+      </div>
+    </div>
   );
 }
