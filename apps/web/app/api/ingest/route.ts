@@ -11,12 +11,26 @@ const VALID_TYPES = new Set([
   'video',
   'instagram',
   'reddit',
+  'pinterest',
+  'dribbble',
+  'linkedin',
+  'twitter',
   'receipt',
   'pdf',
   'audio',
   'screen_recording',
 ]);
-const URL_TYPES = new Set(['url', 'youtube', 'video', 'instagram', 'reddit']);
+const URL_TYPES = new Set([
+  'url',
+  'youtube',
+  'video',
+  'instagram',
+  'reddit',
+  'pinterest',
+  'dribbble',
+  'linkedin',
+  'twitter',
+]);
 const MAX_IMAGES = 10;
 
 const INSTAGRAM_POST_PATTERNS = [
@@ -53,6 +67,36 @@ const REDDIT_POST_PATTERNS = [
 
 function isRedditPostUrl(url: string): boolean {
   return REDDIT_POST_PATTERNS.some((r) => r.test(url));
+}
+
+const PINTEREST_PATTERNS = [
+  /^https?:\/\/(?:www\.|[a-z]{2}\.)?pinterest\.(?:com|co\.uk|ca|fr|de|es|it|jp|mx|pt|nz|com\.au)\/pin\//i,
+  /^https?:\/\/pin\.it\//i,
+];
+const DRIBBBLE_PATTERNS = [/^https?:\/\/(?:www\.)?dribbble\.com\/shots\//i];
+const LINKEDIN_PATTERNS = [
+  /^https?:\/\/(?:www\.|[a-z]{2}\.)?linkedin\.com\/posts\//i,
+  /^https?:\/\/(?:www\.|[a-z]{2}\.)?linkedin\.com\/pulse\//i,
+  /^https?:\/\/(?:www\.|[a-z]{2}\.)?linkedin\.com\/feed\/update\//i,
+  /^https?:\/\/lnkd\.in\//i,
+];
+const TWITTER_PATTERNS = [
+  /^https?:\/\/(?:www\.|mobile\.)?twitter\.com\/[^/]+\/status\/\d+/i,
+  /^https?:\/\/(?:www\.|mobile\.)?x\.com\/[^/]+\/status\/\d+/i,
+  /^https?:\/\/t\.co\//i,
+];
+
+function isPinterestUrl(url: string): boolean {
+  return PINTEREST_PATTERNS.some((r) => r.test(url));
+}
+function isDribbbleUrl(url: string): boolean {
+  return DRIBBBLE_PATTERNS.some((r) => r.test(url));
+}
+function isLinkedinUrl(url: string): boolean {
+  return LINKEDIN_PATTERNS.some((r) => r.test(url));
+}
+function isTwitterUrl(url: string): boolean {
+  return TWITTER_PATTERNS.some((r) => r.test(url));
 }
 
 type AuthResult = { ok: true; userId: string; token: string } | { ok: false };
@@ -160,10 +204,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       (isInstagramPostUrl(raw_url) || isInstagramReelUrl(raw_url) || isInstagramStoryUrl(raw_url))) ||
       (incomingType === 'video' && (isInstagramPostUrl(raw_url) || isInstagramStoryUrl(raw_url))));
 
+  // Auto-detect social media URLs posted as `type='url'` (bulk-add or share sheet
+  // when the client couldn't classify). Explicit client-set social types win —
+  // only coerce when incoming is a generic url/video type.
+  const canCoerce = incomingType === 'url' || incomingType === 'video';
   const type = instagramCoerce
     ? 'instagram'
-    : (incomingType === 'url' || incomingType === 'video') && raw_url && isRedditPostUrl(raw_url)
+    : canCoerce && raw_url && isRedditPostUrl(raw_url)
     ? 'reddit'
+    : canCoerce && raw_url && isPinterestUrl(raw_url)
+    ? 'pinterest'
+    : canCoerce && raw_url && isDribbbleUrl(raw_url)
+    ? 'dribbble'
+    : canCoerce && raw_url && isLinkedinUrl(raw_url)
+    ? 'linkedin'
+    : canCoerce && raw_url && isTwitterUrl(raw_url)
+    ? 'twitter'
     : incomingType;
 
   // Normalize images into an array. Accept `raw_images` (multi) or legacy `raw_image` (single).
