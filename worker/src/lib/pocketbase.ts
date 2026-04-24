@@ -119,19 +119,26 @@ export function ensureAuth(): Promise<void> {
   return authPromise;
 }
 
+// All writes/reads disable auto-cancel. A single shared `pb` client is used across
+// concurrent BullMQ jobs; without `requestKey: null`, the SDK cancels earlier
+// in-flight calls of the same endpoint (e.g. two `items.update` running in
+// parallel) — surfaces as "The request was autocancelled" and fails whichever
+// job lost the race. See pocketbase-js 0.21 autoCancellation docs.
+const NO_CANCEL = { requestKey: null } as const;
+
 export async function getItem(id: string): Promise<ItemRecord> {
   await ensureAuth();
-  return pb.collection('items').getOne<ItemRecord>(id);
+  return pb.collection('items').getOne<ItemRecord>(id, NO_CANCEL);
 }
 
 export async function updateItem(id: string, patch: Partial<ItemRecord>): Promise<ItemRecord> {
   await ensureAuth();
-  return pb.collection('items').update<ItemRecord>(id, patch);
+  return pb.collection('items').update<ItemRecord>(id, patch, NO_CANCEL);
 }
 
 export async function createEmbedding(itemId: string, vector: number[]): Promise<EmbeddingRecord> {
   await ensureAuth();
-  return pb.collection('embeddings').create<EmbeddingRecord>({ item: itemId, vector });
+  return pb.collection('embeddings').create<EmbeddingRecord>({ item: itemId, vector }, NO_CANCEL);
 }
 
 export async function createSaveEvent(data: {
@@ -141,7 +148,7 @@ export async function createSaveEvent(data: {
   counted_at: string;
 }): Promise<SaveEventRecord> {
   await ensureAuth();
-  return pb.collection('save_events').create<SaveEventRecord>(data);
+  return pb.collection('save_events').create<SaveEventRecord>(data, NO_CANCEL);
 }
 
 export async function findGlobalElementByHash(hash: string): Promise<GlobalElementRecord | null> {
@@ -149,7 +156,7 @@ export async function findGlobalElementByHash(hash: string): Promise<GlobalEleme
   try {
     return await pb
       .collection('global_elements')
-      .getFirstListItem<GlobalElementRecord>(`element_hash="${hash}"`);
+      .getFirstListItem<GlobalElementRecord>(`element_hash="${hash}"`, NO_CANCEL);
   } catch (err) {
     if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
       return null;
@@ -160,12 +167,12 @@ export async function findGlobalElementByHash(hash: string): Promise<GlobalEleme
 
 export async function createGlobalElement(data: Omit<GlobalElementRecord, 'id' | 'created' | 'updated'>): Promise<GlobalElementRecord> {
   await ensureAuth();
-  return pb.collection('global_elements').create<GlobalElementRecord>(data);
+  return pb.collection('global_elements').create<GlobalElementRecord>(data, NO_CANCEL);
 }
 
 export async function updateGlobalElement(id: string, patch: Partial<GlobalElementRecord>): Promise<GlobalElementRecord> {
   await ensureAuth();
-  return pb.collection('global_elements').update<GlobalElementRecord>(id, patch);
+  return pb.collection('global_elements').update<GlobalElementRecord>(id, patch, NO_CANCEL);
 }
 
 export async function findUserInterest(
@@ -180,6 +187,7 @@ export async function findUserInterest(
       .collection('user_interests')
       .getFirstListItem<UserInterestRecord>(
         `user="${user}" && topic="${safeTopic}" && source="${source}"`,
+        NO_CANCEL,
       );
   } catch (err) {
     if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
@@ -197,12 +205,12 @@ export async function createUserInterest(data: {
   last_seen: string;
 }): Promise<UserInterestRecord> {
   await ensureAuth();
-  return pb.collection('user_interests').create<UserInterestRecord>(data);
+  return pb.collection('user_interests').create<UserInterestRecord>(data, NO_CANCEL);
 }
 
 export async function updateUserInterest(id: string, patch: Partial<UserInterestRecord>): Promise<UserInterestRecord> {
   await ensureAuth();
-  return pb.collection('user_interests').update<UserInterestRecord>(id, patch);
+  return pb.collection('user_interests').update<UserInterestRecord>(id, patch, NO_CANCEL);
 }
 
 if (PB_ADMIN_EMAIL && PB_ADMIN_PASSWORD) {
