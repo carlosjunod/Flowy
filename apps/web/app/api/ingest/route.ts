@@ -24,8 +24,17 @@ const INSTAGRAM_POST_PATTERNS = [
   /^https?:\/\/(?:www\.)?instagram\.com\/tv\//,
 ];
 
+const INSTAGRAM_REEL_PATTERNS = [
+  /^https?:\/\/(?:www\.)?instagram\.com\/reel\//,
+  /^https?:\/\/(?:www\.)?instagram\.com\/reels\//,
+];
+
 function isInstagramPostUrl(url: string): boolean {
   return INSTAGRAM_POST_PATTERNS.some((r) => r.test(url));
+}
+
+function isInstagramReelUrl(url: string): boolean {
+  return INSTAGRAM_REEL_PATTERNS.some((r) => r.test(url));
 }
 
 const REDDIT_POST_PATTERNS = [
@@ -127,15 +136,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // Auto-route Instagram post/carousel URLs to the instagram processor.
-  // Reels stay on whatever type the client picked (usually `video`).
+  // Auto-route Instagram URLs when the client couldn't classify them (bulk-add
+  // sends type='url' for every pasted link). Mobile share-sheet sends type='video'
+  // for reels deliberately — keep that path on the faster `video` processor.
+  //   type=url   + /p/, /tv/, /reel/, /reels/ → instagram
+  //   type=video + /p/, /tv/                  → instagram
+  //   type=video + /reel/, /reels/            → stays video
   // Reddit comment/share URLs route to the reddit processor.
-  const type =
-    (incomingType === 'url' || incomingType === 'video') && raw_url && isInstagramPostUrl(raw_url)
-      ? 'instagram'
-      : (incomingType === 'url' || incomingType === 'video') && raw_url && isRedditPostUrl(raw_url)
-      ? 'reddit'
-      : incomingType;
+  const instagramCoerce =
+    raw_url !== undefined &&
+    raw_url.length > 0 &&
+    ((incomingType === 'url' && (isInstagramPostUrl(raw_url) || isInstagramReelUrl(raw_url))) ||
+      (incomingType === 'video' && isInstagramPostUrl(raw_url)));
+
+  const type = instagramCoerce
+    ? 'instagram'
+    : (incomingType === 'url' || incomingType === 'video') && raw_url && isRedditPostUrl(raw_url)
+    ? 'reddit'
+    : incomingType;
 
   // Normalize images into an array. Accept `raw_images` (multi) or legacy `raw_image` (single).
   let images: string[] = [];

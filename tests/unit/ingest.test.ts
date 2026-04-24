@@ -189,6 +189,31 @@ describe('POST /api/ingest', () => {
     expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'video' }));
   });
 
+  it('type url + instagram /reel/ URL → coerced to instagram (bulk-add path)', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'url', raw_url: 'https://www.instagram.com/reel/DXRw_Ggj8dK/?igsh=bDhydzZiZTRrNWg5' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ type: 'instagram' }));
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'instagram' }));
+  });
+
+  it('type url + instagram /reels/ URL → coerced to instagram', async () => {
+    authOk();
+    const res = await POST(
+      makeRequest(
+        { type: 'url', raw_url: 'https://www.instagram.com/reels/ABC/' },
+        { authorization: 'Bearer t' },
+      ) as never,
+    );
+    expect(res.status).toBe(201);
+    expect(mockQueueAdd).toHaveBeenCalledWith('ingest', expect.objectContaining({ type: 'instagram' }));
+  });
+
   it('explicit type instagram + raw_url → queued as instagram', async () => {
     authOk();
     const res = await POST(
