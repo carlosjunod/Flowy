@@ -4,6 +4,7 @@ import { Fragment, useMemo } from 'react';
 import type { ChatMessageData } from './ChatWindow';
 import { ItemChip } from './ItemChip';
 import { useItemDrawer } from '@/components/inbox/ItemDrawerProvider';
+import { ItemActionsMenu } from '@/components/inbox/ItemActionsMenu';
 import { TypeIcon } from '@/components/ui/icons';
 
 export interface ChatItemRef {
@@ -96,22 +97,26 @@ export function ChatMessage({ message }: Props) {
           <span className="pl-1 text-[11px] font-medium uppercase tracking-wide text-muted">{railLabel}</span>
           <div className="-mx-1 flex max-w-full snap-x gap-2 overflow-x-auto pb-1 pl-1">
             {railItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => drawer.open(item.id)}
-                data-testid="item-card"
-                className="group flex min-w-[220px] snap-start flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated p-3 text-left text-xs shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card-hover"
-              >
-                <span className="flex items-center gap-1.5 text-muted">
-                  <TypeIcon type={item.type} size={12} strokeWidth={2} />
-                  <span className="truncate">{domainFromUrl(item.source_url) ?? item.type}</span>
-                </span>
-                <span className="line-clamp-2 font-medium text-foreground">{truncate(item.title ?? '(untitled)', 40)}</span>
-                <span className="inline-flex items-center gap-1 text-accent opacity-80 transition-opacity group-hover:opacity-100">
-                  Open details →
-                </span>
-              </button>
+              <div key={item.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => drawer.open(item.id)}
+                  data-testid="item-card"
+                  className="flex min-w-[220px] snap-start flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated p-3 text-left text-xs shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card-hover"
+                >
+                  <span className="flex items-center gap-1.5 text-muted">
+                    <TypeIcon type={item.type} size={12} strokeWidth={2} />
+                    <span className="truncate">{domainFromUrl(item.source_url) ?? item.type}</span>
+                  </span>
+                  <span className="line-clamp-2 font-medium text-foreground">{truncate(item.title ?? '(untitled)', 40)}</span>
+                  <span className="inline-flex items-center gap-1 text-accent opacity-80 transition-opacity group-hover:opacity-100">
+                    Open details →
+                  </span>
+                </button>
+                <div className="absolute right-2 top-2" onClick={(e) => e.stopPropagation()}>
+                  <ItemActionsMenu itemId={item.id} status={(item as { status?: 'pending' | 'processing' | 'ready' | 'error' }).status ?? 'ready'} variant="hover" />
+                </div>
+              </div>
             ))}
           </div>
         </div>

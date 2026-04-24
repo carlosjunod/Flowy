@@ -73,16 +73,6 @@ describe('POST /api/items/[id]/retry', () => {
     expect(res.status).toBe(404);
   });
 
-  it('409 when item is not in error status', async () => {
-    authOk();
-    getOneMock.mockResolvedValue({ id: 'i1', user: 'u1', type: 'url', status: 'ready' });
-    const res = await POST(req({ authorization: 'Bearer t' }) as never, ctx());
-    expect(res.status).toBe(409);
-    expect(await res.json()).toEqual({ error: 'NOT_RETRIABLE' });
-    expect(updateMock).not.toHaveBeenCalled();
-    expect(queueAddMock).not.toHaveBeenCalled();
-  });
-
   it('happy path: flips status to pending, clears error_msg, enqueues job', async () => {
     authOk();
     getOneMock.mockResolvedValue({
@@ -124,5 +114,71 @@ describe('POST /api/items/[id]/retry', () => {
     updateMock.mockRejectedValue(new Error('db down'));
     const res = await POST(req({ authorization: 'Bearer t' }) as never, ctx());
     expect(res.status).toBe(500);
+  });
+});
+
+describe('widened reload gate', () => {
+  beforeEach(() => {
+    authRefreshMock.mockReset();
+    getOneMock.mockReset();
+    updateMock.mockReset();
+    queueAddMock.mockReset();
+  });
+
+  it('accepts status=ready and re-enqueues', async () => {
+    authOk('u1');
+    getOneMock.mockResolvedValue({ id: 'i1', user: 'u1', status: 'ready', type: 'url', raw_url: 'https://x.test' });
+    updateMock.mockResolvedValue({ id: 'i1', status: 'pending', user: 'u1', type: 'url' });
+
+    const res = await POST(
+      req({ authorization: 'Bearer t' }),
+      { params: Promise.resolve({ id: 'i1' }) },
+    );
+
+    expect(res.status).toBe(201);
+    expect(updateMock).toHaveBeenCalledWith('items', 'i1', { status: 'pending', error_msg: '' });
+    expect(queueAddMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects status=pending with ALREADY_PROCESSING', async () => {
+    authOk('u1');
+    getOneMock.mockResolvedValue({ id: 'i1', user: 'u1', status: 'pending', type: 'url' });
+
+    const res = await POST(
+      req({ authorization: 'Bearer t' }),
+      { params: Promise.resolve({ id: 'i1' }) },
+    );
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('ALREADY_PROCESSING');
+    expect(queueAddMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects status=processing with ALREADY_PROCESSING', async () => {
+    authOk('u1');
+    getOneMock.mockResolvedValue({ id: 'i1', user: 'u1', status: 'processing', type: 'url' });
+
+    const res = await POST(
+      req({ authorization: 'Bearer t' }),
+      { params: Promise.resolve({ id: 'i1' }) },
+    );
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('ALREADY_PROCESSING');
+  });
+
+  it('still accepts status=error (preserves existing behavior)', async () => {
+    authOk('u1');
+    getOneMock.mockResolvedValue({ id: 'i1', user: 'u1', status: 'error', type: 'url', raw_url: 'https://x.test' });
+    updateMock.mockResolvedValue({ id: 'i1', status: 'pending', user: 'u1', type: 'url' });
+
+    const res = await POST(
+      req({ authorization: 'Bearer t' }),
+      { params: Promise.resolve({ id: 'i1' }) },
+    );
+
+    expect(res.status).toBe(201);
   });
 });

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
-import { retryItem, deleteItem } from '@/lib/items-actions';
-import { TypeIcon, RotateIcon, TrashIcon, AlertTriangleIcon } from '@/components/ui/icons';
+import { ItemActionsMenu } from './ItemActionsMenu';
+import { useSelection } from './SelectionProvider';
+import { TypeIcon, AlertTriangleIcon } from '@/components/ui/icons';
 
 interface Props {
   item: Item;
@@ -78,88 +78,46 @@ function mediaCount(item: Item): number {
   return Array.isArray(item.media) ? item.media.length : 0;
 }
 
-interface HoverActionsProps {
-  item: Item;
-  onRetry?: () => void;
-  onDelete: () => void;
-  busy: boolean;
-}
-
-function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
-  const stopAll = (e: React.MouseEvent | React.KeyboardEvent) => {
-    e.stopPropagation();
-  };
-  const base =
-    'rounded-full border border-border bg-surface-elevated/90 p-1.5 text-foreground/70 backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:opacity-40 active:scale-95 dark:bg-surface-elevated/80';
+function CardActionsSlot({ item }: { item: Item }) {
   return (
     <div
       data-testid="item-card-actions"
-      className="pointer-events-none absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+      className="absolute right-2 top-2 z-10"
+      onClick={(e) => e.stopPropagation()}
     >
-      {onRetry ? (
-        <button
-          type="button"
-          title="Retry"
-          aria-label="Retry item"
-          data-testid="item-card-retry"
-          disabled={busy}
-          onClick={(e) => { stopAll(e); onRetry(); }}
-          onKeyDown={stopAll}
-          className={base}
-        >
-          <RotateIcon size={14} />
-        </button>
-      ) : null}
-      <button
-        type="button"
-        title="Delete"
-        aria-label="Delete item"
-        data-testid="item-card-delete"
-        disabled={busy}
-        onClick={(e) => { stopAll(e); onDelete(); }}
-        onKeyDown={stopAll}
-        className={`${base} hover:border-red-400 hover:text-red-700 dark:hover:border-red-700 dark:hover:text-red-300`}
-      >
-        <TrashIcon size={14} />
-        <span className="sr-only">Delete {item.title ?? 'item'}</span>
-      </button>
+      <ItemActionsMenu itemId={item.id} status={item.status} variant="hover" />
+    </div>
+  );
+}
+
+function SelectionCheckbox({ itemId, title }: { itemId: string; title?: string }) {
+  const { selectedIds, toggle } = useSelection();
+  const selected = selectedIds.has(itemId);
+  return (
+    <div className="absolute left-2 top-2 z-20" onClick={(e) => e.stopPropagation()}>
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => toggle(itemId)}
+        aria-label={`Select ${title ?? 'item'}`}
+        aria-checked={selected}
+        className="h-5 w-5 cursor-pointer rounded border-border accent-accent"
+      />
     </div>
   );
 }
 
 export function ItemCard({ item }: Props) {
   const drawer = useItemDrawer();
-  const [busy, setBusy] = useState(false);
+  const selection = useSelection();
+  const selectionMode = selection.mode;
+  const selected = selection.selectedIds.has(item.id);
   const isPending = item.status === 'pending' || item.status === 'processing';
   const isError = item.status === 'error';
   const thumb = thumbnailUrl(item);
   const domain = item.site_name ?? domainFromUrl(item.source_url ?? item.raw_url);
   const categoryClass = categoryColor(item.category);
-
-  const confirmDelete = async () => {
-    if (busy) return;
-    if (typeof window !== 'undefined' && !window.confirm('Delete this item?')) return;
-    setBusy(true);
-    const res = await deleteItem(item.id);
-    if (res.ok) {
-      drawer.emit({ kind: 'deleted', id: item.id });
-    } else {
-      setBusy(false);
-      if (typeof window !== 'undefined') window.alert(`Delete failed: ${res.error}`);
-    }
-  };
-
-  const triggerRetry = async () => {
-    if (busy) return;
-    setBusy(true);
-    const res = await retryItem(item.id);
-    if (res.ok) {
-      drawer.emit({ kind: 'retried', item: res.data });
-    } else {
-      setBusy(false);
-      if (typeof window !== 'undefined') window.alert(`Retry failed: ${res.error}`);
-    }
-  };
+  const ringClass = selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : '';
 
   if (isPending) {
     return (
@@ -186,13 +144,15 @@ export function ItemCard({ item }: Props) {
       <article
         data-testid="item-card-error"
         title={item.error_msg ?? 'Processing error'}
-        className="group relative flex h-48 flex-col gap-2 rounded-2xl border border-red-300 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40"
+        aria-selected={selectionMode ? selected : undefined}
+        onClick={selectionMode ? () => selection.toggle(item.id) : undefined}
+        className={`group relative flex h-48 flex-col gap-2 rounded-2xl border border-red-300 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40 ${selectionMode ? 'cursor-pointer' : ''} ${ringClass}`}
       >
         <div className="flex h-28 items-center justify-center">
           <AlertTriangleIcon size={32} strokeWidth={1.5} className="text-red-500 dark:text-red-400" />
         </div>
         <span className="line-clamp-3 text-xs text-red-700 dark:text-red-300">{item.error_msg ?? 'error'}</span>
-        <HoverActions item={item} onRetry={triggerRetry} onDelete={confirmDelete} busy={busy} />
+        {selectionMode ? <SelectionCheckbox itemId={item.id} title={item.title} /> : <CardActionsSlot item={item} />}
       </article>
     );
   }
@@ -201,16 +161,21 @@ export function ItemCard({ item }: Props) {
     <div
       role="button"
       tabIndex={0}
-      onClick={() => drawer.open(item.id)}
+      aria-selected={selectionMode ? selected : undefined}
+      onClick={(e) => {
+        if (selectionMode) { e.preventDefault(); selection.toggle(item.id); return; }
+        drawer.open(item.id);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          drawer.open(item.id);
+          if (selectionMode) selection.toggle(item.id);
+          else drawer.open(item.id);
         }
       }}
       data-testid="item-card"
       data-category={item.category ?? ''}
-      className="group relative flex h-48 cursor-pointer flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className={`group relative flex h-48 cursor-pointer flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${ringClass}`}
     >
       <div className="relative h-28 w-full overflow-hidden rounded-lg bg-surface">
         {thumb ? (
@@ -254,7 +219,7 @@ export function ItemCard({ item }: Props) {
         {item.title ?? '(untitled)'}
       </p>
       {domain ? <span className="truncate text-xs text-muted">{domain}</span> : null}
-      <HoverActions item={item} onDelete={confirmDelete} busy={busy} />
+      {selectionMode ? <SelectionCheckbox itemId={item.id} title={item.title} /> : <CardActionsSlot item={item} />}
     </div>
   );
 }

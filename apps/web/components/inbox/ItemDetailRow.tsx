@@ -3,6 +3,8 @@
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { thumbnailUrl } from './ItemCard';
+import { ItemActionsMenu } from './ItemActionsMenu';
+import { useSelection } from './SelectionProvider';
 import { TypeIcon } from '@/components/ui/icons';
 
 function domainFromUrl(url?: string | null): string | null {
@@ -25,19 +27,45 @@ function relativeDate(iso: string): string {
 
 export function ItemDetailRow({ item }: { item: Item }) {
   const drawer = useItemDrawer();
+  const selection = useSelection();
+  const selectionMode = selection.mode;
+  const selected = selection.selectedIds.has(item.id);
   const isPending = item.status === 'pending' || item.status === 'processing';
   const isError = item.status === 'error';
   const thumb = thumbnailUrl(item);
   const domain = domainFromUrl(item.source_url ?? item.raw_url);
+  const selectedClass = selected ? 'border-l-2 border-l-accent bg-accent/5' : '';
 
   return (
-    <button
-      type="button"
-      onClick={() => drawer.open(item.id)}
+    <div
+      role="button"
+      tabIndex={0}
+      aria-selected={selectionMode ? selected : undefined}
+      onClick={(e) => {
+        if (selectionMode) { e.preventDefault(); selection.toggle(item.id); return; }
+        drawer.open(item.id);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (selectionMode) selection.toggle(item.id);
+          else drawer.open(item.id);
+        }
+      }}
       data-testid="item-detail-row"
       data-category={item.category ?? ''}
-      className="group flex w-full gap-4 rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      className={`group relative flex w-full cursor-pointer gap-4 rounded-2xl border border-border bg-surface-elevated p-3 text-left shadow-card transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${selectedClass}`}
     >
+      {selectionMode ? (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => { e.stopPropagation(); selection.toggle(item.id); }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Select ${item.title ?? 'item'}`}
+          className="h-5 w-5 shrink-0 cursor-pointer self-start rounded border-border accent-accent"
+        />
+      ) : null}
       <div className="flex h-24 w-32 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-muted">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -65,6 +93,11 @@ export function ItemDetailRow({ item }: { item: Item }) {
           ) : null}
         </div>
       </div>
-    </button>
+      {!selectionMode ? (
+        <div className="absolute right-3 top-3" onClick={(e) => e.stopPropagation()}>
+          <ItemActionsMenu itemId={item.id} status={item.status} variant="hover" />
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -106,6 +106,12 @@ export function InboxGrid({ filter: filterProp = null, sort: sortProp = 'date' }
         setItems((prev) => prev.map((i) => (i.id === m.item.id ? { ...i, ...m.item } : i)));
       } else if (m.kind === 'created') {
         setItems((prev) => (prev.some((i) => i.id === m.item.id) ? prev : [m.item, ...prev]));
+      } else if (m.kind === 'bulk-deleted') {
+        const set = new Set(m.ids);
+        setItems((prev) => prev.filter((i) => !set.has(i.id)));
+      } else if (m.kind === 'bulk-retried') {
+        const set = new Set(m.ids);
+        setItems((prev) => prev.map((i) => (set.has(i.id) ? { ...i, status: 'pending', error_msg: '' } : i)));
       }
     });
     return unsubscribe;

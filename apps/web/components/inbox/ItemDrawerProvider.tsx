@@ -8,7 +8,9 @@ export type ItemMutation =
   | { kind: 'updated'; item: Item }
   | { kind: 'deleted'; id: string }
   | { kind: 'retried'; item: Item }
-  | { kind: 'created'; item: Item };
+  | { kind: 'created'; item: Item }
+  | { kind: 'bulk-deleted'; ids: string[] }
+  | { kind: 'bulk-retried'; ids: string[] };
 
 type Listener = (m: ItemMutation) => void;
 

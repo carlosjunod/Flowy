@@ -17,3 +17,32 @@ export async function deleteItem(id: string): Promise<ActionResult<{ id: string 
   const res = await fetch(`/api/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
   return parse<{ id: string }>(res);
 }
+
+export interface BulkFailure {
+  id: string;
+  code: string;
+  message?: string;
+}
+
+export interface BulkOutcome {
+  succeeded: string[];
+  failed: BulkFailure[];
+}
+
+export async function reloadItems(ids: string[]): Promise<ActionResult<BulkOutcome>> {
+  const res = await fetch('/api/items/bulk/reload', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  return parse<BulkOutcome>(res);
+}
+
+export async function deleteItems(ids: string[]): Promise<ActionResult<BulkOutcome>> {
+  const res = await fetch('/api/items/bulk/delete', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  return parse<BulkOutcome>(res);
+}
