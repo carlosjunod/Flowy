@@ -25,4 +25,7 @@ export default defineConfig({
       pocketbase: resolve(__dirname, 'apps/web/node_modules/pocketbase/dist/pocketbase.es.mjs'),
     },
   },
+  esbuild: {
+    jsx: 'automatic',
+  },
 });
