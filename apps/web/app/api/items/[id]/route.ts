@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Item } from '@/types';
 import { authenticate } from '@/lib/auth';
+import { deleteItemWithCascade } from '@/lib/items-delete';
 
 export const runtime = 'nodejs';
 
@@ -80,19 +81,10 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
   const { id } = await ctx.params;
   if (!id) return NextResponse.json({ error: 'MISSING_ID' }, { status: 400 });
 
-  const owned = await loadOwnedItem(auth.pb, id, auth.userId);
-  if (!owned) return NextResponse.json({ error: 'ITEM_NOT_FOUND' }, { status: 404 });
-
-  try {
-    const embeddings = await auth.pb.collection('embeddings').getFullList<{ id: string }>({
-      filter: `item = "${id}"`,
-      fields: 'id',
-    });
-    await Promise.all(embeddings.map((e) => auth.pb.collection('embeddings').delete(e.id)));
-    await auth.pb.collection('items').delete(id);
-    return NextResponse.json({ data: { id } });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'DELETE_FAILED';
-    return NextResponse.json({ error: message }, { status: 500 });
+  const result = await deleteItemWithCascade(auth.pb, id, auth.userId);
+  if (!result.ok) {
+    const status = result.code === 'ITEM_NOT_FOUND' ? 404 : 500;
+    return NextResponse.json({ error: result.code }, { status });
   }
+  return NextResponse.json({ data: { id } });
 }
