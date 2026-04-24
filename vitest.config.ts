@@ -3,8 +3,10 @@ import { resolve } from 'path';
 
 export default defineConfig({
   test: {
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     environment: 'node',
+    environmentMatchGlobs: [['tests/unit/**/*.test.tsx', 'jsdom']],
+    setupFiles: ['./tests/setup.ts'],
     globals: false,
     coverage: {
       provider: 'v8',
