@@ -3,6 +3,7 @@
 import type { Item } from '@/types';
 import type { ReactNode } from 'react';
 import { SearchIcon, XIcon, GridIcon, ListIcon, RowsIcon, ArrowUpIcon, ArrowDownIcon } from '@/components/ui/icons';
+import { useSelection } from './SelectionProvider';
 
 export type SortMode = 'date' | 'category' | 'type';
 export type SortDirection = 'asc' | 'desc';
@@ -70,6 +71,8 @@ export function FilterBar({
             <ViewButton active={view === 'list'}   onClick={() => onView('list')}   label="List"   testId="view-list"   icon={<ListIcon size={14} />} />
             <ViewButton active={view === 'detail'} onClick={() => onView('detail')} label="Detail" testId="view-detail" icon={<RowsIcon size={14} />} />
           </div>
+
+          <SelectionButton />
 
           <label className="flex items-center gap-1.5 text-xs text-muted">
             <span className="hidden sm:inline">Sort</span>
@@ -153,6 +156,23 @@ function ViewButton({
           : 'text-muted hover:bg-foreground/5 hover:text-foreground'
       }`}
     >{icon}</button>
+  );
+}
+
+function SelectionButton() {
+  const { mode, enter, exit } = useSelection();
+  return (
+    <button
+      type="button"
+      onClick={mode ? exit : enter}
+      className={`inline-flex h-7 items-center rounded-full border px-3 text-xs font-medium transition-colors ${
+        mode
+          ? 'border-accent bg-accent/10 text-accent'
+          : 'border-border bg-surface-elevated text-muted hover:text-foreground'
+      }`}
+    >
+      {mode ? 'Done' : 'Select'}
+    </button>
   );
 }
 
