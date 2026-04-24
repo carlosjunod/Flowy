@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Item } from '@/types';
 import { getPb, updateItem, deleteItem, type ItemPatch } from '@/lib/pocketbase';
 import { shareItem } from '@/lib/share';
-import { TypeIcon, XIcon, ArrowUpRightIcon, ShareIcon, TrashIcon } from '@/components/ui/icons';
+import { TypeIcon, XIcon, ArrowUpRightIcon, ShareIcon, TrashIcon, RotateIcon } from '@/components/ui/icons';
+import { useItemActions } from '@/lib/hooks/useItemActions';
 import { Spinner } from '@/components/ui/Spinner';
 
 const CONTENT_LABEL: Record<string, string> = {
@@ -68,6 +69,8 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
   const [tagInput, setTagInput] = useState('');
   const [zoomed, setZoomed] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const actions = useItemActions();
+  const reloadDisabled = !item || item.status === 'pending' || item.status === 'processing';
 
   useEffect(() => {
     let cancelled = false;
@@ -256,6 +259,15 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
               >
                 <ShareIcon size={12} />
                 <span>Share</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => item && actions.reloadItem(item.id)}
+                disabled={reloadDisabled}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-foreground transition-all hover:border-foreground/30 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RotateIcon size={12} />
+                <span>Reload</span>
               </button>
               <button
                 type="button"
