@@ -30,8 +30,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const item = await loadOwnedItem(auth.pb, id, auth.userId);
   if (!item) return NextResponse.json({ error: 'ITEM_NOT_FOUND' }, { status: 404 });
 
-  if (item.status !== 'error') {
-    return NextResponse.json({ error: 'NOT_RETRIABLE' }, { status: 409 });
+  if (item.status === 'pending' || item.status === 'processing') {
+    return NextResponse.json({ error: 'ALREADY_PROCESSING' }, { status: 409 });
   }
 
   try {
