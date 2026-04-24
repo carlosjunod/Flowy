@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
-import { retryItem, deleteItem } from '@/lib/items-actions';
-import { TypeIcon, RotateIcon, TrashIcon, AlertTriangleIcon } from '@/components/ui/icons';
+import { ItemActionsMenu } from './ItemActionsMenu';
+import { TypeIcon, AlertTriangleIcon } from '@/components/ui/icons';
 
 interface Props {
   item: Item;
@@ -78,88 +77,25 @@ function mediaCount(item: Item): number {
   return Array.isArray(item.media) ? item.media.length : 0;
 }
 
-interface HoverActionsProps {
-  item: Item;
-  onRetry?: () => void;
-  onDelete: () => void;
-  busy: boolean;
-}
-
-function HoverActions({ item, onRetry, onDelete, busy }: HoverActionsProps) {
-  const stopAll = (e: React.MouseEvent | React.KeyboardEvent) => {
-    e.stopPropagation();
-  };
-  const base =
-    'rounded-full border border-border bg-surface-elevated/90 p-1.5 text-foreground/70 backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:opacity-40 active:scale-95 dark:bg-surface-elevated/80';
+function CardActionsSlot({ item }: { item: Item }) {
   return (
     <div
       data-testid="item-card-actions"
-      className="pointer-events-none absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+      className="absolute right-2 top-2 z-10"
+      onClick={(e) => e.stopPropagation()}
     >
-      {onRetry ? (
-        <button
-          type="button"
-          title="Retry"
-          aria-label="Retry item"
-          data-testid="item-card-retry"
-          disabled={busy}
-          onClick={(e) => { stopAll(e); onRetry(); }}
-          onKeyDown={stopAll}
-          className={base}
-        >
-          <RotateIcon size={14} />
-        </button>
-      ) : null}
-      <button
-        type="button"
-        title="Delete"
-        aria-label="Delete item"
-        data-testid="item-card-delete"
-        disabled={busy}
-        onClick={(e) => { stopAll(e); onDelete(); }}
-        onKeyDown={stopAll}
-        className={`${base} hover:border-red-400 hover:text-red-700 dark:hover:border-red-700 dark:hover:text-red-300`}
-      >
-        <TrashIcon size={14} />
-        <span className="sr-only">Delete {item.title ?? 'item'}</span>
-      </button>
+      <ItemActionsMenu itemId={item.id} status={item.status} variant="hover" />
     </div>
   );
 }
 
 export function ItemCard({ item }: Props) {
   const drawer = useItemDrawer();
-  const [busy, setBusy] = useState(false);
   const isPending = item.status === 'pending' || item.status === 'processing';
   const isError = item.status === 'error';
   const thumb = thumbnailUrl(item);
   const domain = item.site_name ?? domainFromUrl(item.source_url ?? item.raw_url);
   const categoryClass = categoryColor(item.category);
-
-  const confirmDelete = async () => {
-    if (busy) return;
-    if (typeof window !== 'undefined' && !window.confirm('Delete this item?')) return;
-    setBusy(true);
-    const res = await deleteItem(item.id);
-    if (res.ok) {
-      drawer.emit({ kind: 'deleted', id: item.id });
-    } else {
-      setBusy(false);
-      if (typeof window !== 'undefined') window.alert(`Delete failed: ${res.error}`);
-    }
-  };
-
-  const triggerRetry = async () => {
-    if (busy) return;
-    setBusy(true);
-    const res = await retryItem(item.id);
-    if (res.ok) {
-      drawer.emit({ kind: 'retried', item: res.data });
-    } else {
-      setBusy(false);
-      if (typeof window !== 'undefined') window.alert(`Retry failed: ${res.error}`);
-    }
-  };
 
   if (isPending) {
     return (
@@ -192,7 +128,7 @@ export function ItemCard({ item }: Props) {
           <AlertTriangleIcon size={32} strokeWidth={1.5} className="text-red-500 dark:text-red-400" />
         </div>
         <span className="line-clamp-3 text-xs text-red-700 dark:text-red-300">{item.error_msg ?? 'error'}</span>
-        <HoverActions item={item} onRetry={triggerRetry} onDelete={confirmDelete} busy={busy} />
+        <CardActionsSlot item={item} />
       </article>
     );
   }
@@ -254,7 +190,7 @@ export function ItemCard({ item }: Props) {
         {item.title ?? '(untitled)'}
       </p>
       {domain ? <span className="truncate text-xs text-muted">{domain}</span> : null}
-      <HoverActions item={item} onDelete={confirmDelete} busy={busy} />
+      <CardActionsSlot item={item} />
     </div>
   );
 }
