@@ -12,6 +12,10 @@ export type ItemType =
   | 'video'
   | 'instagram'
   | 'reddit'
+  | 'pinterest'
+  | 'dribbble'
+  | 'linkedin'
+  | 'twitter'
   | 'screen_recording';
 
 export type MediaSlideKind = 'image' | 'video';

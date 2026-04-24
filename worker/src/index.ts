@@ -9,6 +9,10 @@ import { processYoutube } from './processors/youtube.processor.js';
 import { processVideo } from './processors/video.js';
 import { processInstagram } from './processors/instagram.processor.js';
 import { processReddit } from './processors/reddit.processor.js';
+import { processPinterest } from './processors/pinterest.processor.js';
+import { processDribbble } from './processors/dribbble.processor.js';
+import { processLinkedin } from './processors/linkedin.processor.js';
+import { processTwitter } from './processors/twitter.processor.js';
 import { createDigestWorkers, ensureDigestCronRegistered } from './jobs/dailyDigest.js';
 import type { Job } from 'bullmq';
 
@@ -53,6 +57,18 @@ async function handleJob(job: Job<IngestJobData, IngestJobResult>): Promise<Inge
         break;
       case 'reddit':
         await processReddit(item);
+        break;
+      case 'pinterest':
+        await processPinterest(item);
+        break;
+      case 'dribbble':
+        await processDribbble(item);
+        break;
+      case 'linkedin':
+        await processLinkedin(item);
+        break;
+      case 'twitter':
+        await processTwitter(item);
         break;
       default:
         await updateItem(itemId, { status: 'ready' });
