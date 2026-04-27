@@ -8,6 +8,7 @@ export function SelectionActionBar() {
   const selection = useSelection();
   const actions = useItemActions();
   const [toast, setToast] = useState<string | null>(null);
+  const [exploring, setExploring] = useState(false);
 
   if (!selection.mode) return null;
   const ids = Array.from(selection.selectedIds);
@@ -21,6 +22,21 @@ export function SelectionActionBar() {
     setToast(failed.length === 0
       ? `Reloaded ${succeeded.length} item${succeeded.length === 1 ? '' : 's'}`
       : `${succeeded.length} reloaded, ${failed.length} failed`);
+  }
+
+  async function onExplore() {
+    setExploring(true);
+    try {
+      const res = await actions.exploreMany(ids);
+      selection.exit();
+      if (!res.ok) { setToast(`Explore failed: ${res.error}`); return; }
+      const { succeeded, failed } = res.data;
+      setToast(failed.length === 0
+        ? `Exploring ${succeeded.length} item${succeeded.length === 1 ? '' : 's'} — results appear shortly`
+        : `${succeeded.length} queued, ${failed.length} skipped`);
+    } finally {
+      setExploring(false);
+    }
   }
 
   async function onDelete() {
@@ -41,6 +57,15 @@ export function SelectionActionBar() {
         <span className="text-sm font-medium">{ids.length} selected</span>
         <button type="button" disabled={empty} onClick={() => void onReload()}
           className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent/10 disabled:opacity-50">Reload</button>
+        <button
+          type="button"
+          disabled={empty || exploring}
+          onClick={() => void onExplore()}
+          aria-label="Advanced exploration on selected items"
+          className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-50"
+        >
+          {exploring ? 'Exploring…' : 'Explore'}
+        </button>
         <button type="button" disabled={empty} onClick={() => void onDelete()}
           className="rounded-full border border-red-500/40 px-3 py-1 text-xs text-red-500 hover:bg-red-500/10 disabled:opacity-50">Delete</button>
         <button type="button" onClick={() => selection.exit()}

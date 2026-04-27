@@ -18,6 +18,7 @@ export interface IngestJobResult {
 }
 
 export const INGEST_QUEUE = 'ingest';
+export const EXPLORE_QUEUE = 'advanced-exploration';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 
@@ -44,5 +45,34 @@ export function createIngestWorker(
   return new Worker<IngestJobData, IngestJobResult>(INGEST_QUEUE, processor, {
     connection: createRedisConnection(),
     concurrency: 3,
+  });
+}
+
+export interface ExploreJobData {
+  itemId: string;
+  userId: string;
+  includeVideoFrames: boolean;
+}
+
+export interface ExploreJobResult {
+  received: true;
+}
+
+export const exploreQueue = new Queue<ExploreJobData, ExploreJobResult>(EXPLORE_QUEUE, {
+  connection: createRedisConnection(),
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: 'exponential', delay: 4000 },
+    removeOnComplete: { age: 3600, count: 500 },
+    removeOnFail: { age: 86400 },
+  },
+});
+
+export function createExploreWorker(
+  processor: Processor<ExploreJobData, ExploreJobResult>,
+): Worker<ExploreJobData, ExploreJobResult> {
+  return new Worker<ExploreJobData, ExploreJobResult>(EXPLORE_QUEUE, processor, {
+    connection: createRedisConnection(),
+    concurrency: 2,
   });
 }

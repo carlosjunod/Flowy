@@ -46,3 +46,19 @@ export async function deleteItems(ids: string[]): Promise<ActionResult<BulkOutco
   });
   return parse<BulkOutcome>(res);
 }
+
+export interface ExploreOptions {
+  includeVideoFrames?: boolean;
+}
+
+export async function exploreItems(
+  ids: string[],
+  options: ExploreOptions = {},
+): Promise<ActionResult<BulkOutcome>> {
+  const res = await fetch('/api/items/bulk/explore', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ids, includeVideoFrames: options.includeVideoFrames !== false }),
+  });
+  return parse<BulkOutcome>(res);
+}
