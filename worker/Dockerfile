@@ -1,3 +1,8 @@
+# Worker image — built with Railway Root Directory = `worker`, so the build
+# context is just the `worker/` folder (no access to repo-root package.json
+# or the npm workspace). Install worker's deps standalone from its own
+# package.json. Workspace-shared packages would not resolve here, so keep
+# worker/package.json self-sufficient (all deps must be public npm packages).
 FROM node:20-slim
 
 # Pin yt-dlp + invalidate this layer when the date below is bumped. Instagram
@@ -17,13 +22,19 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-COPY worker/package.json ./worker/
-RUN npm install --workspace worker --omit=dev --ignore-scripts
+# Install all deps (incl dev) so `tsc` is available for the build step.
+# No package-lock.json at this level — the lockfile lives at the monorepo
+# root and is not part of this build context. `npm install` resolves from
+# package.json directly; the runtime image is rebuilt on every deploy so
+# version drift is bounded by the cachebust + the package.json ranges.
+COPY package.json ./
+RUN npm install
 
-COPY worker ./worker
+# Bring in source and compile TypeScript → dist/.
+COPY . .
+RUN npm run build
 
-WORKDIR /app/worker
-RUN npm run build || true
+# Trim dev deps to slim the runtime layer (typescript / tsx / @types).
+RUN npm prune --omit=dev
 
 CMD ["node", "dist/index.js"]
