@@ -6,7 +6,11 @@ import { finalizeItem } from '../lib/finalize.js';
 export class ProcessorError extends Error {
   code: string;
   constructor(code: string, message?: string) {
-    super(message ?? code);
+    // Use `||` not `??` — yt-dlp / external tools sometimes throw with empty
+    // stderr, so `message` arrives as `''`. Nullish coalescing keeps the empty
+    // string and `Error.message` becomes blank, masking the real failure in
+    // logs and the `error_msg` DB column. Fall back to the code instead.
+    super(message?.trim() || code);
     this.code = code;
     this.name = 'ProcessorError';
   }
