@@ -11,13 +11,29 @@ export interface IngestJobData {
   video_mime?: string;
 }
 
+export interface ExploreJobData {
+  itemId: string;
+  userId: string;
+  includeVideoFrames: boolean;
+}
+
 let _queue: Queue<IngestJobData> | null = null;
+let _exploreQueue: Queue<ExploreJobData> | null = null;
+
+function redisConnection(): IORedis {
+  return new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
+  });
+}
 
 export function getQueue(): Queue<IngestJobData> {
   if (_queue) return _queue;
-  const connection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-  });
-  _queue = new Queue<IngestJobData>('ingest', { connection });
+  _queue = new Queue<IngestJobData>('ingest', { connection: redisConnection() });
   return _queue;
+}
+
+export function getExploreQueue(): Queue<ExploreJobData> {
+  if (_exploreQueue) return _exploreQueue;
+  _exploreQueue = new Queue<ExploreJobData>('advanced-exploration', { connection: redisConnection() });
+  return _exploreQueue;
 }

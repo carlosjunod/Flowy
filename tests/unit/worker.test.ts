@@ -31,6 +31,10 @@ vi.mock('../../worker/src/queues.js', () => ({
     on: () => undefined,
     close: async () => undefined,
   }),
+  createExploreWorker: () => ({
+    on: () => undefined,
+    close: async () => undefined,
+  }),
   createRedisConnection: () => ({ on: () => undefined, close: async () => undefined }),
 }));
 

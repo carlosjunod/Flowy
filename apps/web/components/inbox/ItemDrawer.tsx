@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Item } from '@/types';
+import type { Item, ItemExploration } from '@/types';
 import { getPb, updateItem, deleteItem, type ItemPatch } from '@/lib/pocketbase';
 import { shareItem } from '@/lib/share';
-import { TypeIcon, XIcon, ArrowUpRightIcon, ShareIcon, TrashIcon, RotateIcon } from '@/components/ui/icons';
+import { TypeIcon, XIcon, ArrowUpRightIcon, ShareIcon, TrashIcon, RotateIcon, SparkleIcon } from '@/components/ui/icons';
 import { useItemActions } from '@/lib/hooks/useItemActions';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -71,6 +71,8 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const actions = useItemActions();
   const reloadDisabled = !item || item.status === 'pending' || item.status === 'processing';
+  const exploring = item?.exploration?.status === 'exploring';
+  const exploreDisabled = !item || item.status !== 'ready' || exploring;
 
   useEffect(() => {
     let cancelled = false;
@@ -271,6 +273,20 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
               </button>
               <button
                 type="button"
+                onClick={async () => {
+                  if (!item) return;
+                  const res = await actions.exploreMany([item.id]);
+                  if (res.ok) showToast('Exploring…');
+                  else showToast(`Explore failed: ${res.error}`);
+                }}
+                disabled={exploreDisabled}
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-all hover:bg-accent/20 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <SparkleIcon size={12} />
+                <span>{exploring ? 'Exploring…' : 'Explore'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleDelete}
                 disabled={deleting}
                 className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-all hover:border-red-400 active:scale-[0.97] disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:border-red-800"
@@ -341,6 +357,8 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
                   className="w-full resize-y rounded-lg border border-border bg-surface-elevated px-3 py-2 font-mono text-xs leading-relaxed text-foreground outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25"
                 />
               </Field>
+
+              {merged.exploration ? <ExplorationSection exploration={merged.exploration} /> : null}
             </section>
 
             <div className="sticky bottom-0 -mx-5 mt-6 flex items-center justify-between gap-2 border-t border-border bg-background/95 px-5 py-3 backdrop-blur-xl">
@@ -382,6 +400,64 @@ export function ItemDrawer({ itemId, onClose, onUpdated, onDeleted }: Props) {
           </div>
         ) : null}
       </aside>
+    </div>
+  );
+}
+
+function ExplorationSection({ exploration }: { exploration: ItemExploration }) {
+  const { status, primary_link, candidates, video_insights, notes, error_msg } = exploration;
+  return (
+    <div data-testid="exploration-section" className="flex flex-col gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-accent">
+        <SparkleIcon size={12} strokeWidth={2} />
+        <span>Advanced exploration</span>
+        <span className="ml-auto text-muted">{status}</span>
+      </div>
+      {status === 'exploring' ? (
+        <p className="text-xs text-muted">Re-evaluating this item with web search…</p>
+      ) : null}
+      {status === 'error' ? (
+        <p className="text-xs text-red-500">{error_msg ?? 'Exploration failed'}</p>
+      ) : null}
+      {primary_link ? (
+        <a
+          href={primary_link.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex max-w-full items-center gap-1.5 truncate rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
+        >
+          <ArrowUpRightIcon size={12} />
+          <span className="truncate">{primary_link.title || primary_link.url}</span>
+          <span className="ml-auto text-[10px] uppercase tracking-wide text-accent/70">{primary_link.kind}</span>
+        </a>
+      ) : null}
+      {candidates.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Candidates</span>
+          <ul className="flex flex-col gap-1">
+            {candidates.map((c, i) => (
+              <li key={`${c.name}-${i}`} className="flex flex-col gap-0.5 rounded-md border border-border bg-surface-elevated p-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">{c.name}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted">{c.kind}</span>
+                  <span className="ml-auto text-[10px] text-muted">{(c.confidence * 100).toFixed(0)}%</span>
+                </div>
+                {c.url ? (
+                  <a href={c.url} target="_blank" rel="noreferrer" className="truncate text-accent hover:underline">{c.url}</a>
+                ) : null}
+                {c.reason ? <p className="text-muted">{c.reason}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {video_insights && video_insights.frames_analyzed > 0 ? (
+        <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-muted">
+          <span className="font-medium text-foreground">Video frames:</span> analyzed {video_insights.frames_analyzed}
+          {video_insights.on_screen_text ? ` · on-screen text captured` : ''}
+        </div>
+      ) : null}
+      {notes ? <p className="text-[11px] text-muted">{notes}</p> : null}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import type { Item } from '@/types';
 import { useItemDrawer } from './ItemDrawerProvider';
 import { ItemActionsMenu } from './ItemActionsMenu';
 import { useSelection } from './SelectionProvider';
-import { TypeIcon, AlertTriangleIcon } from '@/components/ui/icons';
+import { TypeIcon, AlertTriangleIcon, ArrowUpRightIcon, SparkleIcon } from '@/components/ui/icons';
 
 interface Props {
   item: Item;
@@ -88,6 +88,52 @@ function CardActionsSlot({ item }: { item: Item }) {
       <ItemActionsMenu itemId={item.id} status={item.status} variant="hover" />
     </div>
   );
+}
+
+function ExplorationChip({ item }: { item: Item }) {
+  const exp = item.exploration;
+  if (!exp) return null;
+  if (exp.status === 'exploring') {
+    return (
+      <span
+        data-testid="explore-chip-loading"
+        className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent"
+        title="Exploring…"
+      >
+        <SparkleIcon size={10} strokeWidth={2} />
+        <span>Exploring…</span>
+      </span>
+    );
+  }
+  if (exp.primary_link) {
+    return (
+      <a
+        href={exp.primary_link.url}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="explore-chip-primary"
+        className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/20"
+        title={exp.primary_link.url}
+      >
+        <ArrowUpRightIcon size={10} strokeWidth={2} />
+        <span className="truncate">{exp.primary_link.title || exp.primary_link.url}</span>
+      </a>
+    );
+  }
+  if (exp.candidates.length > 0) {
+    return (
+      <span
+        data-testid="explore-chip-candidates"
+        className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-elevated px-2 py-0.5 text-[10px] font-medium text-muted"
+        title="Open the item to see candidate matches"
+      >
+        <SparkleIcon size={10} strokeWidth={2} />
+        <span>{exp.candidates.length} candidate{exp.candidates.length === 1 ? '' : 's'}</span>
+      </span>
+    );
+  }
+  return null;
 }
 
 function SelectionCheckbox({ itemId, title }: { itemId: string; title?: string }) {
@@ -219,6 +265,7 @@ export function ItemCard({ item }: Props) {
         {item.title ?? '(untitled)'}
       </p>
       {domain ? <span className="truncate text-xs text-muted">{domain}</span> : null}
+      {item.exploration ? <ExplorationChip item={item} /> : null}
       {selectionMode ? <SelectionCheckbox itemId={item.id} title={item.title} /> : <CardActionsSlot item={item} />}
     </div>
   );

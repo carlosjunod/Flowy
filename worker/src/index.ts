@@ -1,6 +1,13 @@
 import './env.js';
 import { execFile } from 'node:child_process';
-import { createIngestWorker, type IngestJobData, type IngestJobResult } from './queues.js';
+import {
+  createExploreWorker,
+  createIngestWorker,
+  type ExploreJobData,
+  type ExploreJobResult,
+  type IngestJobData,
+  type IngestJobResult,
+} from './queues.js';
 import { getItem, updateItem } from './lib/pocketbase.js';
 
 // Probe yt-dlp at startup so the deploy log records which binary + version
@@ -30,6 +37,7 @@ import { processPinterest } from './processors/pinterest.processor.js';
 import { processDribbble } from './processors/dribbble.processor.js';
 import { processLinkedin } from './processors/linkedin.processor.js';
 import { processTwitter } from './processors/twitter.processor.js';
+import { processExplore } from './processors/explore.processor.js';
 import { createDigestWorkers, ensureDigestCronRegistered } from './jobs/dailyDigest.js';
 import type { Job } from 'bullmq';
 
@@ -114,6 +122,28 @@ worker.on('ready', () => console.log('[worker] ready, waiting for jobs...'));
 worker.on('error', (err) => console.error('[worker] error:', err.message));
 worker.on('failed', (job, err) => console.error(`[worker] job ${job?.id} failed: ${err.message}`));
 
+async function handleExploreJob(job: Job<ExploreJobData, ExploreJobResult>): Promise<ExploreJobResult> {
+  const { itemId, includeVideoFrames } = job.data;
+  try {
+    const outcome = await processExplore(itemId, { includeVideoFrames: Boolean(includeVideoFrames) });
+    console.log(
+      `[explore] item=${itemId} status=${outcome.status} frames=${outcome.framesAnalyzed} candidates=${outcome.candidateCount}` +
+        (outcome.primary ? ` primary=${outcome.primary.url}` : ''),
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'UNKNOWN_ERROR';
+    console.error(`[explore] job failed item=${itemId}: ${message}`);
+  }
+  return { received: true };
+}
+
+const exploreWorker = createExploreWorker(handleExploreJob);
+exploreWorker.on('ready', () => console.log('[explore] worker ready'));
+exploreWorker.on('error', (err) => console.error('[explore] error:', err.message));
+exploreWorker.on('failed', (job, err) => console.error(`[explore] job ${job?.id} failed: ${err.message}`));
+
+export { handleExploreJob };
+
 const { scheduleWorker, generateWorker } = createDigestWorkers();
 scheduleWorker.on('error', (err) => console.error('[digest-schedule] error:', err.message));
 scheduleWorker.on('failed', (job, err) =>
@@ -133,6 +163,6 @@ void ensureDigestCronRegistered()
 
 process.on('SIGINT', async () => {
   console.log('[worker] shutting down...');
-  await Promise.allSettled([worker.close(), scheduleWorker.close(), generateWorker.close()]);
+  await Promise.allSettled([worker.close(), exploreWorker.close(), scheduleWorker.close(), generateWorker.close()]);
   process.exit(0);
 });

@@ -21,6 +21,40 @@ export interface MediaSlide {
   extracted_text?: string;
 }
 
+export type ExplorationStatus = 'exploring' | 'enriched' | 'no_match' | 'error';
+export type ExplorationLinkKind = 'github' | 'product' | 'docs' | 'app_store' | 'other';
+
+export interface ExplorationLink {
+  url: string;
+  title: string;
+  kind: ExplorationLinkKind;
+  confidence: number;
+}
+
+export interface ExplorationCandidate {
+  name: string;
+  url?: string;
+  kind: ExplorationLinkKind;
+  confidence: number;
+  reason: string;
+}
+
+export interface ExplorationVideoInsights {
+  frames_analyzed: number;
+  on_screen_text: string;
+  visual_cues: string[];
+}
+
+export interface ItemExploration {
+  status: ExplorationStatus;
+  primary_link?: ExplorationLink;
+  candidates: ExplorationCandidate[];
+  video_insights?: ExplorationVideoInsights;
+  notes?: string;
+  last_explored_at: string;
+  error_msg?: string;
+}
+
 export interface Item {
   id: string;
   user: string;
@@ -39,6 +73,7 @@ export interface Item {
   og_image?: string;
   og_description?: string;
   site_name?: string;
+  exploration?: ItemExploration;
   created: string;
   updated: string;
 }

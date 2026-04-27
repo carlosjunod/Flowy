@@ -254,6 +254,200 @@ export async function analyzeImages(
   }
 }
 
+const IDENTIFY_SYSTEM_PROMPT = `You are an expert content investigator. Given a saved item (text, transcript, OCR, and optionally video frames), determine the SPECIFIC tool, product, repository, paper, or app the content is about.
+
+Strategy:
+1. Read all the provided context — title, summary, body, OCR/extracted text from frames, on-screen visuals.
+2. Use the web_search tool when needed to verify or discover the canonical link. Prefer:
+   - github.com (free/open-source repos) > official site > docs > npm > Hugging Face > App Store
+3. Only set primary_link when confidence ≥ 0.7 that this URL is the right canonical destination.
+4. List up to 5 candidates as alternatives — even when primary_link is set — to give the user fallback options.
+5. If the content is not about any specific identifiable product, return primary_link: null and status: "no_match".
+
+Respond with ONLY a single JSON object — no prose, no code fences — matching:
+
+{
+  "status": "enriched" | "no_match",
+  "primary_link": null | { "url": string, "title": string, "kind": "github"|"product"|"docs"|"app_store"|"other", "confidence": number },
+  "candidates": [ { "name": string, "url": string|null, "kind": "github"|"product"|"docs"|"app_store"|"other", "confidence": number, "reason": string } ],
+  "notes": string
+}
+
+confidence is 0..1. Tighter is better than loose.`;
+
+export interface IdentifyLink {
+  url: string;
+  title: string;
+  kind: 'github' | 'product' | 'docs' | 'app_store' | 'other';
+  confidence: number;
+}
+
+export interface IdentifyCandidate {
+  name: string;
+  url?: string;
+  kind: 'github' | 'product' | 'docs' | 'app_store' | 'other';
+  confidence: number;
+  reason: string;
+}
+
+export interface IdentifyResult {
+  status: 'enriched' | 'no_match';
+  primary_link?: IdentifyLink;
+  candidates: IdentifyCandidate[];
+  notes: string;
+}
+
+export interface IdentifyInput {
+  context: string;
+  frames?: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'; data: string }[];
+  enableWebSearch?: boolean;
+}
+
+function normalizeKind(raw: unknown): IdentifyLink['kind'] {
+  const v = String(raw ?? '').toLowerCase();
+  if (v === 'github' || v === 'product' || v === 'docs' || v === 'app_store' || v === 'other') return v;
+  return 'other';
+}
+
+function clampConfidence(raw: unknown): number {
+  const n = typeof raw === 'number' ? raw : Number.parseFloat(String(raw ?? ''));
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+function extractJsonBlock(text: string): string | null {
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1) return null;
+  return text.slice(firstBrace, lastBrace + 1);
+}
+
+function parseIdentifyJson(text: string): IdentifyResult {
+  const slice = extractJsonBlock(text);
+  if (!slice) throw new ClaudeError('IDENTIFY_PARSE_FAILED', 'no JSON in response');
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(slice) as Record<string, unknown>;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ClaudeError('IDENTIFY_PARSE_FAILED', msg);
+  }
+  const status = raw.status === 'enriched' ? 'enriched' : 'no_match';
+  let primary: IdentifyLink | undefined;
+  const rawPrimary = raw.primary_link;
+  if (rawPrimary && typeof rawPrimary === 'object') {
+    const p = rawPrimary as Record<string, unknown>;
+    const url = typeof p.url === 'string' ? p.url.trim() : '';
+    if (url && /^https?:\/\//i.test(url)) {
+      primary = {
+        url,
+        title: String(p.title ?? '').slice(0, 200),
+        kind: normalizeKind(p.kind),
+        confidence: clampConfidence(p.confidence),
+      };
+    }
+  }
+  const candidatesRaw = Array.isArray(raw.candidates) ? raw.candidates : [];
+  const candidates: IdentifyCandidate[] = candidatesRaw.slice(0, 5).map((c) => {
+    const rec = (c ?? {}) as Record<string, unknown>;
+    const rawUrl = typeof rec.url === 'string' ? rec.url.trim() : '';
+    const url = rawUrl && /^https?:\/\//i.test(rawUrl) ? rawUrl : undefined;
+    return {
+      name: String(rec.name ?? '').slice(0, 200),
+      url,
+      kind: normalizeKind(rec.kind),
+      confidence: clampConfidence(rec.confidence),
+      reason: String(rec.reason ?? '').slice(0, 500),
+    };
+  }).filter((c) => c.name.length > 0);
+  return {
+    status: primary || candidates.length > 0 ? status : 'no_match',
+    primary_link: primary,
+    candidates,
+    notes: String(raw.notes ?? '').slice(0, 1000),
+  };
+}
+
+interface ClaudeContentBlock {
+  type: string;
+  text?: string;
+}
+
+function collectText(blocks: ClaudeContentBlock[]): string {
+  return blocks
+    .filter((b) => b.type === 'text' && typeof b.text === 'string')
+    .map((b) => String(b.text))
+    .join('\n')
+    .trim();
+}
+
+export async function identifyContent(input: IdentifyInput): Promise<IdentifyResult> {
+  const trimmed = input.context.slice(0, 30_000);
+  const userBlocks: Array<
+    | { type: 'text'; text: string }
+    | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+  > = [];
+  if (input.frames && input.frames.length > 0) {
+    userBlocks.push({
+      type: 'text',
+      text: `Below are ${input.frames.length} sampled frames from the video, in chronological order. Read all visible UI/code/text in them — they often contain the canonical link or product name even when the audio does not.`,
+    });
+    input.frames.forEach((f, i) => {
+      userBlocks.push({ type: 'text', text: `Frame ${i + 1}:` });
+      userBlocks.push({
+        type: 'image',
+        source: { type: 'base64', media_type: f.mediaType, data: f.data },
+      });
+    });
+  }
+  userBlocks.push({
+    type: 'text',
+    text: `Saved item context:\n${trimmed || '(empty)'}\n\nIdentify the specific product, repository, paper, or app being discussed and return the JSON.`,
+  });
+
+  // The web_search server tool is supported by the Anthropic API but the
+  // exact field is not in this SDK version's typed surface. Pass it through
+  // as a typed-loose value — the API accepts the JSON shape verbatim.
+  const tools = input.enableWebSearch !== false
+    ? [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 } as unknown as never]
+    : undefined;
+
+  try {
+    const resp = await getClaude().messages.create({
+      model: MODEL,
+      max_tokens: 2048,
+      system: IDENTIFY_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userBlocks as never }],
+      ...(tools ? { tools } : {}),
+    });
+    const text = collectText(resp.content as unknown as ClaudeContentBlock[]);
+    if (!text) throw new ClaudeError('NO_TEXT_RESPONSE', 'Claude returned no text block');
+    return parseIdentifyJson(text);
+  } catch (err) {
+    if (err instanceof ClaudeError) throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    // If web_search is rejected by the API for any reason, retry once without it.
+    if (tools && /tool|web_search/i.test(msg)) {
+      try {
+        const resp = await getClaude().messages.create({
+          model: MODEL,
+          max_tokens: 2048,
+          system: IDENTIFY_SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: userBlocks as never }],
+        });
+        const text = collectText(resp.content as unknown as ClaudeContentBlock[]);
+        if (!text) throw new ClaudeError('NO_TEXT_RESPONSE', 'Claude returned no text block');
+        return parseIdentifyJson(text);
+      } catch (retryErr) {
+        if (retryErr instanceof ClaudeError) throw retryErr;
+        const m = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        throw new ClaudeError('IDENTIFY_FAILED', m);
+      }
+    }
+    throw new ClaudeError('IDENTIFY_FAILED', msg);
+  }
+}
+
 /**
  * Generate a 1536-dim embedding for text.
  * Uses OpenAI's text-embedding-3-small when OPENAI_API_KEY is set.

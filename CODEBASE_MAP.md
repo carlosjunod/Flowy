@@ -111,7 +111,23 @@
 | Settings (enabled / time) | `apps/web/app/api/digest/settings/route.ts`, `apps/web/app/(app)/settings/digest/page.tsx` |
 | Detail page UI | `apps/web/app/(app)/digest/[id]/page.tsx` |
 
-### 2.4 Authentication
+### 2.4 Advanced Exploration (selected items → canonical link)
+
+User selects items in the inbox, hits **Explore** in `SelectionActionBar`, and Flowy re-evaluates each item with Claude + the `web_search` server tool to identify the specific product/repo/paper being discussed. For YouTube/video items, frames are sampled with yt-dlp+ffmpeg and passed to Claude Vision so the model can read on-screen URLs the audio transcript misses.
+
+| Step | Where it happens | File |
+|---|---|---|
+| 1. User toggles selection mode + checks items | Inbox UI | `apps/web/components/inbox/FilterBar.tsx`, `ItemCard.tsx`, `SelectionProvider.tsx` |
+| 2. User clicks **Explore** in the action bar | Inbox UI | `apps/web/components/inbox/SelectionActionBar.tsx` |
+| 3. Hook calls `POST /api/items/bulk/explore` with selected ids | Web client | `apps/web/lib/items-actions.ts` (`exploreItems`), `apps/web/lib/hooks/useItemActions.ts` (`exploreMany`) |
+| 4. API verifies ownership, marks `exploration.status='exploring'`, enqueues per-item job | Next.js route | `apps/web/app/api/items/bulk/explore/route.ts` |
+| 5. BullMQ `advanced-exploration` queue (Redis) | Producer / definitions | `apps/web/lib/queue.ts` (`getExploreQueue`), `worker/src/queues.ts` (`exploreQueue`, `createExploreWorker`) |
+| 6. Worker samples 4 video frames (yt-dlp → ffmpeg) for video-type items | Frame sampler | `worker/src/lib/videoFrames.ts` (`sampleVideoFrames`) |
+| 7. Builds context + frames, calls Claude with `web_search` server tool, parses JSON result | AI lib | `worker/src/lib/claude.ts` (`identifyContent`) |
+| 8. Persists primary link / candidates / video_insights to `items.exploration` | Processor | `worker/src/processors/explore.processor.ts`; `worker/src/lib/pocketbase.ts` (`updateItem`) |
+| 9. UI picks up via PocketBase realtime — chip on card, full panel in drawer | Inbox UI | `apps/web/components/inbox/ItemCard.tsx` (`ExplorationChip`), `apps/web/components/inbox/ItemDrawer.tsx` (`ExplorationSection`) |
+
+### 2.5 Authentication
 
 | Flow | Files |
 |---|---|
@@ -163,6 +179,7 @@
 | POST | `/api/items/[id]/retry` | `apps/web/app/api/items/[id]/retry/route.ts` |
 | POST | `/api/items/bulk/delete` | `apps/web/app/api/items/bulk/delete/route.ts` |
 | POST | `/api/items/bulk/reload` | `apps/web/app/api/items/bulk/reload/route.ts` |
+| POST | `/api/items/bulk/explore` | `apps/web/app/api/items/bulk/explore/route.ts` |
 | GET | `/api/digest` | `apps/web/app/api/digest/route.ts` |
 | GET | `/api/digest/[id]` | `apps/web/app/api/digest/[id]/route.ts` |
 | GET / PATCH | `/api/digest/settings` | `apps/web/app/api/digest/settings/route.ts` |
@@ -202,16 +219,16 @@
 | `google-auth.ts` | Google OAuth JWT verification |
 | `pocketbase.ts` | `getPb()`, `getCurrentUser()`, `logout()`, `updateItem()`, `deleteItem()` — **all DB access funnels through here** |
 | `claude.ts` | Claude API client + embedding/cosine helpers — **all AI calls funnel through here** |
-| `queue.ts` | BullMQ producer; enqueues `ingest` jobs |
-| `items-actions.ts` | Item action helpers (tag, categorize, …) |
+| `queue.ts` | BullMQ producer; `getQueue()` enqueues `ingest`, `getExploreQueue()` enqueues `advanced-exploration` |
+| `items-actions.ts` | Item action helpers (`reloadItems`, `deleteItems`, `exploreItems`, …) |
 | `items-delete.ts` | Delete helpers shared by single + bulk |
 | `share.ts` | Web Share API with clipboard fallback |
-| `hooks/useItemActions.ts` | React hook for item CRUD |
+| `hooks/useItemActions.ts` | React hook for item CRUD (`reloadMany`, `deleteMany`, `exploreMany`) |
 | `digest/types.ts` | Digest TypeScript types (frontend) |
 
 ### 3.5 Types
 
-- `apps/web/types/index.ts` — `Item`, `ItemType`, `ItemStatus`, `Embedding`, `ChatMessageType`, `MediaSlide`, `ApiResponse`
+- `apps/web/types/index.ts` — `Item`, `ItemType`, `ItemStatus`, `Embedding`, `ChatMessageType`, `MediaSlide`, `ApiResponse`, `ItemExploration` (+ `ExplorationStatus`, `ExplorationLink`, `ExplorationCandidate`, `ExplorationVideoInsights`)
 
 ### 3.6 Web app config
 
@@ -224,8 +241,8 @@
 
 ### 4.1 Entry & queues
 
-- `worker/src/index.ts` — main process; probes `yt-dlp`, starts BullMQ worker on `ingest` queue (concurrency 3), wires digest schedule + generate workers, dispatches by `type`
-- `worker/src/queues.ts` — queue names, `IngestJobData` type, Redis connection
+- `worker/src/index.ts` — main process; probes `yt-dlp`, starts BullMQ worker on `ingest` queue (concurrency 3), starts `advanced-exploration` worker (concurrency 2), wires digest schedule + generate workers, dispatches by `type`
+- `worker/src/queues.ts` — queue names (`INGEST_QUEUE`, `EXPLORE_QUEUE`), `IngestJobData`/`ExploreJobData` types, Redis connection
 - `worker/src/env.ts` — env loader
 - `worker/src/types/modules.d.ts` — module augmentations
 
@@ -247,13 +264,15 @@ One file per item type. Each: extract → classify (Claude) → embed → finali
 | `dribbble.processor.ts` | `dribbble` | Shot metadata |
 | `linkedin.processor.ts` | `linkedin` | Post scraping |
 | `twitter.processor.ts` | `twitter` | Tweet scraping |
+| `explore.processor.ts` | _re-evaluation, any type_ | Reads existing item → optionally samples video frames → calls `identifyContent()` (Claude + `web_search`) → writes result to `items.exploration` |
 
 ### 4.3 Worker library — `worker/src/lib/`
 
 | File | Purpose |
 |---|---|
-| `claude.ts` | Claude Sonnet 4.5 client; `extractStructuredData()`, `generateEmbedding()`, `ClaudeError` |
-| `pocketbase.ts` | Admin client; `getItem`, `updateItem`, `createEmbedding`, `createSaveEvent` |
+| `claude.ts` | Claude Sonnet 4.5 client; `extractStructuredData()`, `analyzeImage()`, `analyzeImages()`, `identifyContent()` (advanced exploration with `web_search` server tool), `generateEmbedding()`, `ClaudeError` |
+| `pocketbase.ts` | Admin client; `getItem`, `updateItem`, `createEmbedding`, `createSaveEvent`; exports `ItemExploration` types |
+| `videoFrames.ts` | `sampleVideoFrames()` — yt-dlp downloads low-quality video, ffprobe gets duration, ffmpeg extracts N evenly-spaced JPEG frames; used by advanced exploration on YouTube/video items |
 | `finalize.ts` | `finalizeItem(itemId, patch)` — sets `status=ready`, records save event, triggers profiler + elements |
 | `profiler.ts` | `recordUserInterests(item)` — updates `user_interests` |
 | `elements.ts` | Visual element fingerprint dedup (`global_elements`) |
@@ -305,11 +324,12 @@ One file per item type. Each: extract → classify (Claude) → embed → finali
 | `1900000013_add_reddit_type.js` | `reddit` type |
 | `1900000014_daily_digest.js` | `digests` collection + `digest_enabled` / `digest_time` on users |
 | `1900000015_add_social_types.js` | `pinterest`, `dribbble`, `linkedin`, `twitter` types |
+| `1900000016_add_exploration_field.js` | `exploration` JSON field on items (advanced exploration result) |
 
 ### 5.2 Collections (current state)
 
 - **users** — built-in auth + `apple_sub`, `google_sub`, `digest_enabled`, `digest_time`
-- **items** — `user`, `type`, `raw_url`, `source_url`, `r2_key`, `title`, `summary`, `content`, `tags`, `category`, `status`, `error_msg`, `og_image`, `og_description`, `site_name`, `media`, `element`
+- **items** — `user`, `type`, `raw_url`, `source_url`, `r2_key`, `title`, `summary`, `content`, `tags`, `category`, `status`, `error_msg`, `og_image`, `og_description`, `site_name`, `media`, `element`, `exploration`
 - **embeddings** — `item` (unique), `vector` (1536-dim JSON, indexed by sqlite-vec)
 - **user_interests** — per-user category/tag aggregation
 - **global_elements** — `element_hash`, `kind`
@@ -342,13 +362,13 @@ Bundle id: `app.tryflowy.app`. Keychain access group: `group.tryflowy`.
 
 ### 7.1 Unit tests — `tests/unit/`
 
-**Routes**: `ingest.test.ts`, `ingest-instagram-routing.test.ts`, `ingest-social-routing.test.ts`, `chat.test.ts`, `items.route.test.ts`, `bulk-delete-route.test.ts`, `bulk-reload-route.test.ts`, `retry-route.test.ts`, `apple-app-site-association.test.ts`
+**Routes**: `ingest.test.ts`, `ingest-instagram-routing.test.ts`, `ingest-social-routing.test.ts`, `chat.test.ts`, `items.route.test.ts`, `bulk-delete-route.test.ts`, `bulk-reload-route.test.ts`, `bulk-explore-route.test.ts`, `retry-route.test.ts`, `apple-app-site-association.test.ts`
 
 **Auth**: `apple-auth.test.ts`, `google-auth.test.ts`
 
 **Worker / lib**: `worker.test.ts`, `finalize.test.ts`, `elements.test.ts`, `profiler.test.ts`, `social.test.ts`, `socialUrls.test.ts`, `share.test.ts`, `items-delete-helper.test.ts`
 
-**Processors**: `url.processor.test.ts`, `youtube.processor.test.ts`, `image.processor.test.ts`, `video.processor.test.ts`, `instagram.processor.test.ts`, `reddit.processor.test.ts`, `pinterest.processor.test.ts`
+**Processors**: `url.processor.test.ts`, `youtube.processor.test.ts`, `image.processor.test.ts`, `video.processor.test.ts`, `instagram.processor.test.ts`, `reddit.processor.test.ts`, `pinterest.processor.test.ts`, `explore.processor.test.ts`
 
 **Components**: `item-actions-menu.test.tsx`, `selection-provider.test.tsx`, `use-item-actions.test.tsx`
 
@@ -450,4 +470,6 @@ This map should also be mirrored in the project's Obsidian vault (`Flowy/CODEBAS
 - **"Where is the ingest endpoint?"** → §3.2 → `apps/web/app/api/ingest/route.ts`.
 - **"Where does AI classification happen?"** → §2.1 step 7 → `worker/src/lib/claude.ts`.
 - **"Where is the chat UI?"** → §3.3 Chat group.
+- **"Where does advanced exploration run?"** → §2.4 → `worker/src/processors/explore.processor.ts` + `worker/src/lib/claude.ts` (`identifyContent`).
+- **"How do video frames get extracted for Vision?"** → §2.4 step 6 → `worker/src/lib/videoFrames.ts`.
 - **"Add a new social source"** → §4.2 (new processor), §3.2 (`/api/ingest` routing), §5.1 (migration to add type), §7.1 (test), then update this map.
