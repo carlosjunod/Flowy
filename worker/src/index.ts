@@ -1,6 +1,23 @@
 import './env.js';
+import { execFile } from 'node:child_process';
 import { createIngestWorker, type IngestJobData, type IngestJobResult } from './queues.js';
 import { getItem, updateItem } from './lib/pocketbase.js';
+
+// Probe yt-dlp at startup so the deploy log records which binary + version
+// is actually present in the running container. Useful when items fail with
+// empty stderr — first thing to check is whether the version is stale.
+function probeYtdlp(): void {
+  const path = process.env.YTDLP_PATH ?? 'yt-dlp';
+  execFile(path, ['--version'], { timeout: 5_000 }, (err, stdout, stderr) => {
+    if (err) {
+      const code = (err as NodeJS.ErrnoException).code ?? 'unknown';
+      console.error(`[boot] yt-dlp probe failed path=${path} code=${code} stderr=${(stderr || '').slice(0, 200)}`);
+      return;
+    }
+    console.log(`[boot] yt-dlp ok path=${path} version=${stdout.trim()}`);
+  });
+}
+probeYtdlp();
 import { processUrl } from './processors/url.processor.js';
 import { processImage } from './processors/image.processor.js';
 import { processScreenshots } from './processors/screenshots.processor.js';

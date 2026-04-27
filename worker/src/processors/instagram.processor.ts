@@ -73,19 +73,39 @@ async function dumpMetadata(url: string): Promise<YtDlpEntry[]> {
     if (parsed.url || parsed.thumbnail) return [parsed];
     return [];
   } catch (err) {
-    const detail =
-      err && typeof err === 'object' && 'stderr' in err
-        ? String((err as { stderr?: unknown }).stderr ?? '')
-        : err instanceof Error
-          ? err.message
-          : String(err);
+    // Capture every signal the runtime gives us. yt-dlp on a stale Railway
+    // image was failing here with empty stderr, so falling back to one channel
+    // hid the cause. Pull stderr + stdout + exit code + signal + message into
+    // one string so the next failure tells the full story.
+    const e = (err ?? {}) as {
+      stderr?: unknown;
+      stdout?: unknown;
+      code?: unknown;
+      signal?: unknown;
+      killed?: unknown;
+      message?: unknown;
+    };
+    const stderr = typeof e.stderr === 'string' ? e.stderr : '';
+    const stdout = typeof e.stdout === 'string' ? e.stdout : '';
+    const exitCode = e.code === undefined ? 'unknown' : String(e.code);
+    const signal = e.signal ? ` signal=${String(e.signal)}` : '';
+    const killed = e.killed ? ' killed=true' : '';
+    const baseMsg = err instanceof Error ? err.message : '';
+    const detail = (
+      stderr.trim() ||
+      baseMsg ||
+      `exit=${exitCode}${signal}${killed} stdout=${stdout.slice(0, 200).trim()}`
+    ).slice(0, 500);
     const lower = detail.toLowerCase();
-    if (lower.includes('private')) throw new ProcessorError('PRIVATE_PROFILE', detail.slice(0, 500));
+    console.warn(
+      `[instagram:dumpMetadata] yt-dlp failed url=${url.slice(0, 80)} exit=${exitCode}${signal}${killed} stderr.len=${stderr.length} stdout.len=${stdout.length}`,
+    );
+    if (lower.includes('private')) throw new ProcessorError('PRIVATE_PROFILE', detail);
     if (lower.includes('login required') || lower.includes('login_required')) {
-      throw new ProcessorError('LOGIN_REQUIRED', detail.slice(0, 500));
+      throw new ProcessorError('LOGIN_REQUIRED', detail);
     }
     if (err instanceof SyntaxError) throw new ProcessorError('METADATA_PARSE_FAILED', err.message);
-    throw new ProcessorError('DOWNLOAD_FAILED', detail.slice(0, 500));
+    throw new ProcessorError('DOWNLOAD_FAILED', detail);
   }
 }
 
