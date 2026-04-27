@@ -26,6 +26,12 @@ RUN unzip /tmp/pb.zip -d /pb/ && rm /tmp/pb.zip
 # Bake migrations into the image so every deploy ships the current schema.
 # PB applies pending migrations idempotently on startup and tracks them in the
 # _migrations table inside data.db.
+#
+# CACHEBUST: bump this date when adding a new migration file. Railway re-uses
+# the previous layer cache on redeploy, so without an invalidation hint the
+# `COPY pb_migrations` step is skipped and new migrations never reach the
+# container — even though PB would happily apply them on startup.
+ARG CACHEBUST=2026-04-27-mig15
 COPY pb_migrations /pb/pb_migrations
 
 EXPOSE 8080
