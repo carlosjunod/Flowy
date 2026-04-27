@@ -7,6 +7,25 @@
 
 ---
 
+## 📍 Codebase Map (read this first)
+
+**Before scanning the repo, consult [`CODEBASE_MAP.md`](./CODEBASE_MAP.md).** It is the single navigation index: routes, API endpoints, components, processors, workflows (ingestion, chat, digest, auth), DB collections, and where every important segment lives. Use it to jump straight to the right file instead of searching the tree.
+
+**You MUST keep it in sync.** In the same commit as any of the following, update `CODEBASE_MAP.md`:
+
+- A route, API endpoint, component, or lib file is added / removed / renamed.
+- A new processor or item type is added.
+- A PocketBase migration is created.
+- An end-to-end workflow changes (ingestion, chat, digest, auth, search).
+- A doc is added or moved at the repo root or under `docs/`.
+- An iOS/macOS target or shared file is added or renamed.
+
+After updating the in-repo map, also mirror it into the project's **Obsidian vault** (`Flowy/CODEBASE_MAP.md`). The repo file is the source of truth.
+
+See the "Maintenance" section at the bottom of `CODEBASE_MAP.md` for the full update checklist.
+
+---
+
 ## Tech Stack
 
 | Layer | Choice | Version |
@@ -230,6 +249,7 @@ npx vitest run tests/unit/url.processor.test.ts
 - **No placeholders**: never write `// TODO` or `// implement later` — implement fully or flag as BLOCKER
 - **Env vars**: never hardcode secrets — always use `process.env.KEY` and ensure key is in `.env.example`
 - **PocketBase schema**: never modify `pb_schema.json` directly — use migrations in `pb_migrations/`
+- **Codebase map**: any change that touches the file structure, routes, processors, migrations, workflows, or top-level docs MUST also update `CODEBASE_MAP.md` in the same commit, and be mirrored to the Obsidian vault.
 
 
 <claude-mem-context>
