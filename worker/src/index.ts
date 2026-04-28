@@ -13,12 +13,22 @@ import { getItem, updateItem } from './lib/pocketbase.js';
 // Probe yt-dlp at startup so the deploy log records which binary + version
 // is actually present in the running container. Useful when items fail with
 // empty stderr — first thing to check is whether the version is stale.
+// On ENOENT, dump the PATH and attempted path so the operator can see at a
+// glance whether the Dockerfile install layer drifted.
 function probeYtdlp(): void {
   const path = process.env.YTDLP_PATH ?? 'yt-dlp';
   execFile(path, ['--version'], { timeout: 5_000 }, (err, stdout, stderr) => {
     if (err) {
       const code = (err as NodeJS.ErrnoException).code ?? 'unknown';
-      console.error(`[boot] yt-dlp probe failed path=${path} code=${code} stderr=${(stderr || '').slice(0, 200)}`);
+      const envPath = (process.env.PATH ?? '').slice(0, 500);
+      console.error(
+        `[boot] yt-dlp probe FAILED path=${path} code=${code} ` +
+          `PATH=${envPath} stderr=${(stderr || '').slice(0, 200)}`,
+      );
+      console.error(
+        '[boot] yt-dlp jobs (instagram/video/reddit transcription) will fail with ENOENT until this is fixed. ' +
+          'Verify worker/Dockerfile installed yt-dlp and that ENV YTDLP_PATH points at the real binary.',
+      );
       return;
     }
     console.log(`[boot] yt-dlp ok path=${path} version=${stdout.trim()}`);
