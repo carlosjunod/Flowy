@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import 'dotenv/config';
 
 import { ytdlpCookieArgs } from './ytdlp.js';
+import { ffmpegPath, ffprobePath, ytdlpPath } from './binaries.js';
 
 const execFileP = promisify(execFile);
 
@@ -34,18 +35,6 @@ const MAX_FRAMES = 8;
 const DOWNLOAD_TIMEOUT_MS = 90_000;
 const FFMPEG_TIMEOUT_MS = 30_000;
 const FFPROBE_TIMEOUT_MS = 10_000;
-
-function ytdlpPath(): string {
-  return process.env.YTDLP_PATH ?? 'yt-dlp';
-}
-
-function ffmpegPath(): string {
-  return process.env.FFMPEG_PATH ?? 'ffmpeg';
-}
-
-function ffprobePath(): string {
-  return process.env.FFPROBE_PATH ?? 'ffprobe';
-}
 
 function homebrewEnv(): NodeJS.ProcessEnv {
   return {

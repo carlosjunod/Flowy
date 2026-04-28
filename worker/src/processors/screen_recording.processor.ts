@@ -11,6 +11,7 @@ import { createEmbedding, type ItemRecord, type MediaSlide } from '../lib/pocket
 import { extractStructuredData, generateEmbedding, ClaudeError } from '../lib/claude.js';
 import { uploadFile } from '../lib/storage.js';
 import { finalizeItem } from '../lib/finalize.js';
+import { ffmpegPath } from '../lib/binaries.js';
 import { ProcessorError } from './url.processor.js';
 
 const execFileP = promisify(execFile);
@@ -54,10 +55,9 @@ function ffmpegEnv(): NodeJS.ProcessEnv {
 }
 
 async function extractAudio(videoPath: string, audioPath: string): Promise<boolean> {
-  const ffmpegPath = process.env.FFMPEG_PATH ?? 'ffmpeg';
   try {
     await execFileP(
-      ffmpegPath,
+      ffmpegPath(),
       ['-y', '-i', videoPath, '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'libmp3lame', '-q:a', '4', audioPath],
       { timeout: 120_000, env: ffmpegEnv() },
     );
@@ -70,10 +70,9 @@ async function extractAudio(videoPath: string, audioPath: string): Promise<boole
 }
 
 async function extractPoster(videoPath: string, posterPath: string): Promise<boolean> {
-  const ffmpegPath = process.env.FFMPEG_PATH ?? 'ffmpeg';
   try {
     await execFileP(
-      ffmpegPath,
+      ffmpegPath(),
       ['-y', '-i', videoPath, '-ss', '00:00:01', '-frames:v', '1', '-q:v', '3', posterPath],
       { timeout: 30_000, env: ffmpegEnv() },
     );

@@ -9,32 +9,35 @@ import {
   type IngestJobResult,
 } from './queues.js';
 import { getItem, updateItem } from './lib/pocketbase.js';
+import { describeBinaries } from './lib/binaries.js';
 
-// Probe yt-dlp at startup so the deploy log records which binary + version
-// is actually present in the running container. Useful when items fail with
-// empty stderr — first thing to check is whether the version is stale.
-// On ENOENT, dump the PATH and attempted path so the operator can see at a
-// glance whether the Dockerfile install layer drifted.
-function probeYtdlp(): void {
-  const path = process.env.YTDLP_PATH ?? 'yt-dlp';
-  execFile(path, ['--version'], { timeout: 5_000 }, (err, stdout, stderr) => {
+// Probe yt-dlp + ffmpeg + ffprobe at startup so deploy logs record which
+// binary is actually being used. We resolve through `describeBinaries()`
+// so the probe matches what the processors will exec at runtime — not a
+// raw $YTDLP_PATH lookup that could disagree with the resolver.
+function probeBinaries(): void {
+  const { ytdlp, ffmpeg, ffprobe } = describeBinaries();
+  console.log(`[boot] resolved binaries ytdlp=${ytdlp} ffmpeg=${ffmpeg} ffprobe=${ffprobe}`);
+
+  execFile(ytdlp, ['--version'], { timeout: 5_000 }, (err, stdout, stderr) => {
     if (err) {
       const code = (err as NodeJS.ErrnoException).code ?? 'unknown';
       const envPath = (process.env.PATH ?? '').slice(0, 500);
       console.error(
-        `[boot] yt-dlp probe FAILED path=${path} code=${code} ` +
+        `[boot] yt-dlp probe FAILED path=${ytdlp} code=${code} ` +
           `PATH=${envPath} stderr=${(stderr || '').slice(0, 200)}`,
       );
       console.error(
         '[boot] yt-dlp jobs (instagram/video/reddit transcription) will fail with ENOENT until this is fixed. ' +
-          'Verify worker/Dockerfile installed yt-dlp and that ENV YTDLP_PATH points at the real binary.',
+          'The postinstall step in worker/scripts/install-ytdlp.mjs should have vendored a binary into worker/bin/. ' +
+          'If the file is missing, check the build logs for [install-ytdlp] download failures.',
       );
       return;
     }
-    console.log(`[boot] yt-dlp ok path=${path} version=${stdout.trim()}`);
+    console.log(`[boot] yt-dlp ok path=${ytdlp} version=${stdout.trim()}`);
   });
 }
-probeYtdlp();
+probeBinaries();
 import { processUrl } from './processors/url.processor.js';
 import { processImage } from './processors/image.processor.js';
 import { processScreenshots } from './processors/screenshots.processor.js';

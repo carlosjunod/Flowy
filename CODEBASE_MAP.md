@@ -282,7 +282,8 @@ One file per item type. Each: extract → classify (Claude) → embed → finali
 | `reddit.ts` | Reddit API helpers |
 | `youtubeId.ts` | Parse YouTube ID from various URL forms |
 | `youtubeTranscriptLoader.ts` | `youtube-transcript` wrapper |
-| `ytdlp.ts` | yt-dlp subprocess executor |
+| `ytdlp.ts` | yt-dlp cookie-arg helpers |
+| `binaries.ts` | Resolves absolute paths for `yt-dlp` / `ffmpeg` / `ffprobe` (env override → vendored binary → PATH fallback) |
 | `transcription.ts` | Speech-to-text helpers |
 
 ### 4.4 Digest — `worker/src/lib/digest/`
