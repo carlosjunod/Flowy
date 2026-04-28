@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import 'dotenv/config';
 
 import { ytdlpCookieArgs } from './ytdlp.js';
+import { ffmpegPath as resolveFfmpegPath, ytdlpPath } from './binaries.js';
 import { ProcessorError } from '../processors/url.processor.js';
 
 const execFileP = promisify(execFile);
@@ -47,8 +48,7 @@ async function cleanup(p: Paths): Promise<void> {
 }
 
 async function runYtDlp(url: string, template: string, playlistIndex?: number): Promise<void> {
-  const ytdlpPath = process.env.YTDLP_PATH ?? 'yt-dlp';
-  const ffmpegPath = process.env.FFMPEG_PATH;
+  const ffmpegLocation = resolveFfmpegPath();
   const args = [
     ...ytdlpCookieArgs(),
     // Playlist vs single-video selection. Instagram stories are playlists where
@@ -64,7 +64,10 @@ async function runYtDlp(url: string, template: string, playlistIndex?: number): 
     '--audio-quality', '0',
     '-o', template,
   ];
-  if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
+  // Always pass the resolved ffmpeg path; yt-dlp needs it for both audio
+  // extraction and thumbnail conversion. Pre-fix this would only be set when
+  // FFMPEG_PATH was provided, leaving the railpack runtime to fail silently.
+  args.push('--ffmpeg-location', ffmpegLocation);
   args.push(url);
 
   // Homebrew PATH patch so ffprobe/ffmpeg resolve when the worker is launched
@@ -79,7 +82,7 @@ async function runYtDlp(url: string, template: string, playlistIndex?: number): 
   };
 
   try {
-    await execFileP(ytdlpPath, args, {
+    await execFileP(ytdlpPath(), args, {
       timeout: 60_000,
       maxBuffer: 10 * 1024 * 1024,
       env,
@@ -108,7 +111,7 @@ async function maybeTrimAudio(audioPath: string, maxDurationSec: number): Promis
   const trimmed = `${audioPath}.trimmed.mp3`;
   try {
     await execFileP(
-      'ffmpeg',
+      resolveFfmpegPath(),
       ['-y', '-i', audioPath, '-t', String(maxDurationSec), '-c', 'copy', trimmed],
       { timeout: 30_000 },
     );

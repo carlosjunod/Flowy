@@ -6,6 +6,7 @@ import { analyzeImage, extractStructuredData, generateEmbedding, ClaudeError } f
 import { uploadFile } from '../lib/storage.js';
 import { finalizeItem } from '../lib/finalize.js';
 import { ytdlpCookieArgs } from '../lib/ytdlp.js';
+import { ytdlpPath } from '../lib/binaries.js';
 import { transcribeMediaUrl } from '../lib/transcription.js';
 import { ProcessorError } from './url.processor.js';
 
@@ -59,10 +60,9 @@ function ytDlpEnv(): NodeJS.ProcessEnv {
 }
 
 async function dumpMetadata(url: string): Promise<YtDlpEntry[]> {
-  const ytdlpPath = process.env.YTDLP_PATH ?? 'yt-dlp';
   try {
     const { stdout } = await execFileP(
-      ytdlpPath,
+      ytdlpPath(),
       [...ytdlpCookieArgs(), '--yes-playlist', '--dump-single-json', '--no-warnings', url],
       { timeout: 60_000, maxBuffer: 32 * 1024 * 1024, env: ytDlpEnv() },
     );
